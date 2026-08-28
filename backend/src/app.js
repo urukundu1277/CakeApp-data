@@ -6,6 +6,8 @@ const config = require('./config/environment');
 const { connectDB } = require('./config/database');
 const { errorHandler } = require('./middleware/error.middleware');
 const authRoutes = require('./routes/auth.routes');
+const categoryRoutes = require('./routes/category.routes');
+const productRoutes = require('./routes/product.routes');
 
 const app = express();
 
@@ -39,6 +41,8 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/products', productRoutes);
 
 // API root
 app.get('/api/v1', (req, res) => {
@@ -48,11 +52,8 @@ app.get('/api/v1', (req, res) => {
     environment: config.env,
     endpoints: {
       auth: '/api/v1/auth',
-      users: '/api/v1/users',
       categories: '/api/v1/categories',
       products: '/api/v1/products',
-      orders: '/api/v1/orders',
-      payments: '/api/v1/payments',
     },
   });
 });
