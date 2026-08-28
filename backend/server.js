@@ -1,17 +1,32 @@
 require('dotenv').config();
-const app = require('./src/app');
-const PORT = process.env.PORT || 5000;
+const { app, connectDB } = require('./src/app');
+const config = require('./src/config/environment');
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
+const PORT = config.port;
 
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
-  server.close(() => process.exit(1));
-});
+const startServer = async () => {
+  try {
+    await connectDB();
 
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => process.exit(0));
-});
+    const server = app.listen(PORT, () => {
+      console.log(`Server running in ${config.env} mode on port ${PORT}`);
+      console.log(`API: http://localhost:${PORT}/api/v1`);
+      console.log(`Health: http://localhost:${PORT}/health`);
+    });
+
+    process.on('unhandledRejection', (err) => {
+      console.error('Unhandled Rejection:', err);
+      server.close(() => process.exit(1));
+    });
+
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received, shutting down gracefully');
+      server.close(() => process.exit(0));
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

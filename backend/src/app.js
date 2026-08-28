@@ -2,14 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+const config = require('./config/environment');
+const { connectDB } = require('./config/database');
+const { errorHandler } = require('./middleware/error.middleware');
 
 const app = express();
 
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.ADMIN_PANEL_URL || 'http://localhost:5173',
+  origin: [config.cors.origin, config.cors.mobileUrl],
   credentials: true
 }));
 
@@ -29,7 +31,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Server is healthy',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: config.env,
   });
 });
 
@@ -38,14 +41,15 @@ app.get('/api/v1', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Cake Sale API v1 is running',
+    environment: config.env,
     endpoints: {
       auth: '/api/v1/auth',
       users: '/api/v1/users',
       categories: '/api/v1/categories',
       products: '/api/v1/products',
       orders: '/api/v1/orders',
-      payments: '/api/v1/payments'
-    }
+      payments: '/api/v1/payments',
+    },
   });
 });
 
@@ -53,8 +57,11 @@ app.get('/api/v1', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: 'Route not found',
   });
 });
 
-module.exports = app;
+// Error handling middleware (must be last)
+app.use(errorHandler);
+
+module.exports = { app, connectDB };
