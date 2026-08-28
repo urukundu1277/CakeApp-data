@@ -13,6 +13,7 @@ const addressRoutes = require('./routes/address.routes');
 const orderRoutes = require('./routes/order.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const adminOrderRoutes = require('./routes/admin.order.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/v1/addresses', addressRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/admin/orders', adminOrderRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 
 // API root
 app.get('/api/v1', (req, res) => {
@@ -69,6 +71,7 @@ app.get('/api/v1', (req, res) => {
       orders: '/api/v1/orders',
       payments: '/api/v1/payments',
       adminOrders: '/api/v1/admin/orders',
+      notifications: '/api/v1/notifications',
     },
   });
 });

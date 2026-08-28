@@ -38,6 +38,9 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Address',
   }],
+  fcmToken: {
+    type: String,
+  },
   isActive: {
     type: Boolean,
     default: true,
