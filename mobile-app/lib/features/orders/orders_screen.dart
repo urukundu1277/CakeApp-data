@@ -195,6 +195,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Widget _buildOrderDetailDialog(OrderModel order) {
+    final canCancel = order.orderStatus == 'PLACED' || order.orderStatus == 'CONFIRMED';
+
     return AlertDialog(
       title: Text('Order ${order.orderNumber}'),
       content: SingleChildScrollView(
@@ -216,6 +218,28 @@ class _OrdersScreenState extends State<OrdersScreen> {
         ),
       ),
       actions: [
+        if (canCancel)
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await _orderService.cancelOrder(widget.token, order.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Order cancelled successfully')),
+                  );
+                  _refreshOrders();
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to cancel order: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Cancel Order', style: TextStyle(color: Colors.red)),
+          ),
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Close'),

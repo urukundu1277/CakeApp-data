@@ -34,6 +34,7 @@ class OrderItemModel {
 }
 
 class OrderModel {
+  final String id;
   final String orderNumber;
   final List<OrderItemModel> items;
   final double subtotal;
@@ -45,6 +46,7 @@ class OrderModel {
   final DateTime createdAt;
 
   OrderModel({
+    required this.id,
     required this.orderNumber,
     required this.items,
     required this.subtotal,
@@ -58,6 +60,7 @@ class OrderModel {
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
+      id: json['_id'] ?? json['id'] ?? '',
       orderNumber: json['orderNumber'] ?? '',
       items: (json['items'] as List?)
               ?.map((item) => OrderItemModel.fromJson(item))

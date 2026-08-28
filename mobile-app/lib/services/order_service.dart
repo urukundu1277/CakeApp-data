@@ -54,4 +54,17 @@ class OrderService {
     }
     throw Exception('Failed to load orders');
   }
+
+  Future<void> cancelOrder(String token, String orderId) async {
+    final headers = await ApiInterceptor.getHeaders(token: token);
+    final response = await http.put(
+      Uri.parse('${ApiConstants.baseUrl}/orders/$orderId/cancel'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200) {
+      final data = jsonDecode(response.body);
+      throw Exception(data['message'] ?? 'Failed to cancel order');
+    }
+  }
 }

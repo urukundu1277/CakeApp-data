@@ -1,0 +1,101 @@
+const { param, body } = require('express-validator');
+const adminOrderService = require('../services/admin.order.service');
+const { authorize } = require('../middleware/auth.middleware');
+const { validationResult } = require('express-validator');
+
+const validateRequest = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map(err => err.msg);
+    return res.status(400).json({
+      success: false,
+      message: errorMessages[0],
+      errors: errors.array(),
+    });
+  }
+  next();
+};
+
+const validateStatusUpdate = [
+  body('orderStatus')
+    .isIn(['PLACED', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'])
+    .withMessage('Invalid order status'),
+  validateRequest,
+];
+
+const getAllOrders = async (req, res) => {
+  try {
+    const filters = {
+      status: req.query.status,
+      paymentStatus: req.query.paymentStatus,
+      search: req.query.search,
+      page: req.query.page || 1,
+      limit: req.query.limit || 20,
+    };
+
+    const result = await adminOrderService.getAllOrders(filters);
+    res.status(200).json({
+      success: true,
+      message: 'Orders retrieved successfully',
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to retrieve orders',
+    });
+  }
+};
+
+const getOrderById = async (req, res) => {
+  try {
+    const order = await adminOrderService.getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Order retrieved successfully',
+      data: order,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to retrieve order',
+    });
+  }
+};
+
+const updateOrderStatus = async (req, res) => {
+  try {
+    const { orderStatus } = req.body;
+    const order = await adminOrderService.updateOrderStatus(req.params.id, orderStatus);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Order status updated successfully',
+      data: order,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to update order status',
+    });
+  }
+};
+
+module.exports = {
+  validateRequest,
+  validateStatusUpdate,
+  getAllOrders,
+  getOrderById,
+  updateOrderStatus,
+};

@@ -18,7 +18,7 @@ const Orders = () => {
         params.status = statusFilter;
       }
       const response = await orderService.getAll(params);
-      setOrders(response.data || []);
+      setOrders(response.orders || []);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     } finally {
