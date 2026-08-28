@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const config = require('./config/environment');
 const { connectDB } = require('./config/database');
 const { errorHandler } = require('./middleware/error.middleware');
+const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 
@@ -36,7 +37,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes will be added here
+// API routes
+app.use('/api/v1/auth', authRoutes);
+
+// API root
 app.get('/api/v1', (req, res) => {
   res.status(200).json({
     success: true,
