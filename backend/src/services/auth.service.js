@@ -9,7 +9,7 @@ const generateToken = (id) => {
 };
 
 const register = async (userData) => {
-  const { name, email, mobile, password } = userData;
+  const { name, email, mobile, password, role = 'CUSTOMER' } = userData;
 
   const existingUser = await User.findOne({
     $or: [{ email }, { mobile }],
@@ -26,7 +26,7 @@ const register = async (userData) => {
     email,
     mobile,
     password,
-    role: 'CUSTOMER',
+    role,
   });
 
   const token = generateToken(user._id);

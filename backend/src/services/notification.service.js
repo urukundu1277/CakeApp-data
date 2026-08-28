@@ -12,7 +12,7 @@ const sendPushNotification = async (userId, title, message, type = 'SYSTEM', dat
     });
 
     const user = await require('../models/User').findById(userId);
-    if (!user || !user.fcmToken) {
+    if (!user || !user.fcmToken || !messaging) {
       return notification;
     }
 

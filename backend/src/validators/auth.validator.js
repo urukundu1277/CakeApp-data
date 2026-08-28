@@ -27,6 +27,9 @@ const validateRegister = [
     .matches(/^[0-9]{10}$/).withMessage('Please enter a valid 10-digit mobile number'),
   body('password')
     .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('role')
+    .optional()
+    .isIn(['CUSTOMER', 'ADMIN']).withMessage('Invalid role'),
   validateRequest,
 ];
 
