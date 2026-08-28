@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/formatters.dart';
 import 'core/constants/app_constants.dart';
 import 'core/routes/app_routes.dart';
 import 'models/cart_model.dart';
 import 'models/address_model.dart';
+import 'models/order_model.dart';
 import 'services/address_service.dart';
 import 'services/order_service.dart';
+import 'services/payment_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String token;
@@ -30,6 +33,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   late Future<List<AddressModel>> _addressesFuture;
   final AddressService _addressService = AddressService();
   final OrderService _orderService = OrderService();
+  final PaymentService _paymentService = PaymentService();
+  late Razorpay _razorpay;
 
   AddressModel? _selectedAddress;
   DateTime? _selectedDate;
@@ -50,35 +55,78 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _addressesFuture = _addressService.getAddresses(widget.token);
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }
 
   @override
   void dispose() {
+    _razorpay.clear();
     _cakeMessageController.dispose();
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now().add(const Duration(days: 1)),
-      firstDate: DateTime.now().add(const Duration(days: 1)),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Payment successful!')),
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() => _selectedDate = picked);
+
+    Navigator.pushReplacementNamed(
+      context,
+      AppRoutes.orders,
+      arguments: {'paymentSuccess': true},
+    );
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Payment failed: ${response.message}')),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('External wallet selected: ${response.walletName}')),
+    );
+  }
+
+  Future<void> _openRazorpayCheckout(String razorpayOrderId, double amount) async {
+    try {
+      final options = {
+        'key': 'your_razorpay_key_id',
+        'amount': amount * 100,
+        'currency': 'INR',
+        'name': 'Cake Sale',
+        'description': 'Order Payment',
+        'order_id': razorpayOrderId,
+        'prefill': {
+          'contact': '',
+          'email': '',
+        },
+        'theme': {
+          'color': '#E91E63',
+        },
+      };
+
+      _razorpay.open(options);
+    } catch (e) {
+      _showError('Failed to open payment gateway: $e');
     }
   }
 
-  bool get _canPlaceOrder {
-    return _selectedAddress != null &&
-        _selectedDate != null &&
-        _selectedTimeSlot != null &&
-        !_isLoading;
-  }
-
   Future<void> _placeOrder() async {
-    if (!_canPlaceOrder) return;
+    if (_selectedAddress == null || _selectedDate == null || _selectedTimeSlot == null) {
+      _showError('Please fill all required fields');
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -93,16 +141,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             : _cakeMessageController.text,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Order placed successfully!')),
-        );
-        Navigator.pushReplacementNamed(
-          context,
-          AppRoutes.orders,
-          arguments: {'order': order},
-        );
-      }
+      final paymentData = await _paymentService.createPaymentOrder(
+        token: widget.token,
+        orderId: order.orderNumber,
+        amount: widget.cart.totalAmount + widget.deliveryFee,
+      );
+
+      await _openRazorpayCheckout(
+        paymentData['razorpayOrderId'],
+        widget.cart.totalAmount + widget.deliveryFee,
+      );
     } catch (e) {
       _showError(e.toString());
     } finally {
@@ -408,7 +456,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: _canPlaceOrder ? _placeOrder : null,
+          onPressed: _isLoading ? null : _placeOrder,
           style: ElevatedButton(
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
@@ -421,9 +469,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 )
-              : Text('Place Order - ${Formatters.formatCurrency(total)}'),
+              : Text('Pay ${Formatters.formatCurrency(total)}'),
         ),
       ),
     );
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now().add(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() => _selectedDate = picked);
+    }
   }
 }
