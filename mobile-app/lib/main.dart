@@ -9,6 +9,11 @@ import 'features/home/home_screen.dart';
 import 'features/products/categories_screen.dart';
 import 'features/products/products_screen.dart';
 import 'features/products/product_details_screen.dart';
+import 'features/cart/cart_screen.dart';
+import 'features/checkout/checkout_screen.dart';
+import 'features/orders/orders_screen.dart';
+import 'features/profile/profile_screen.dart';
+import 'features/notifications/notifications_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +39,11 @@ class CakeSaleApp extends StatelessWidget {
         AppRoutes.categories: (context) => const CategoriesScreen(),
         AppRoutes.products: (context) => const ProductsScreen(),
         AppRoutes.productDetails: (context) => const ProductDetailsScreen(),
+        AppRoutes.cart: (context) => const CartScreen(token: ''),
+        AppRoutes.checkout: (context) => const CheckoutScreen(token: '', cart: null, deliveryFee: 0),
+        AppRoutes.orders: (context) => const OrdersScreen(),
+        AppRoutes.profile: (context) => const ProfileScreen(),
+        AppRoutes.notifications: (context) => const NotificationsScreen(),
       },
     );
   }

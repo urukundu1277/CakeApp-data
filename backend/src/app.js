@@ -8,6 +8,9 @@ const { errorHandler } = require('./middleware/error.middleware');
 const authRoutes = require('./routes/auth.routes');
 const categoryRoutes = require('./routes/category.routes');
 const productRoutes = require('./routes/product.routes');
+const cartRoutes = require('./routes/cart.routes');
+const addressRoutes = require('./routes/address.routes');
+const orderRoutes = require('./routes/order.routes');
 
 const app = express();
 
@@ -43,6 +46,9 @@ app.get('/health', (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/cart', cartRoutes);
+app.use('/api/v1/addresses', addressRoutes);
+app.use('/api/v1/orders', orderRoutes);
 
 // API root
 app.get('/api/v1', (req, res) => {
@@ -54,6 +60,9 @@ app.get('/api/v1', (req, res) => {
       auth: '/api/v1/auth',
       categories: '/api/v1/categories',
       products: '/api/v1/products',
+      cart: '/api/v1/cart',
+      addresses: '/api/v1/addresses',
+      orders: '/api/v1/orders',
     },
   });
 });
