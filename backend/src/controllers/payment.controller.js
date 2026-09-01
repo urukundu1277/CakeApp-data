@@ -40,8 +40,10 @@ const createPaymentOrder = async (req, res) => {
     const { orderId, amount } = req.body;
 
     const order = await Order.findOne({
-      _id: orderId,
-      user: req.user._id,
+      $or: [
+        { _id: orderId, user: req.user._id },
+        { orderNumber: orderId, user: req.user._id },
+      ],
     });
 
     if (!order) {
@@ -93,7 +95,21 @@ const verifyPayment = async (req, res) => {
       });
     }
 
-    const payment = await paymentService.getPaymentByOrderId(orderId);
+    const order = await Order.findOne({
+      $or: [
+        { _id: orderId, user: req.user._id },
+        { orderNumber: orderId, user: req.user._id },
+      ],
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    const payment = await paymentService.getPaymentByOrderId(order._id);
 
     if (!payment) {
       return res.status(404).json({
@@ -108,7 +124,7 @@ const verifyPayment = async (req, res) => {
       status: 'PAID',
     });
 
-    await Order.findByIdAndUpdate(orderId, {
+    await Order.findByIdAndUpdate(order._id, {
       paymentStatus: 'PAID',
       orderStatus: 'CONFIRMED',
     });
@@ -117,7 +133,7 @@ const verifyPayment = async (req, res) => {
       success: true,
       message: 'Payment verified successfully',
       data: {
-        orderId,
+        orderId: order._id,
         paymentId: payment._id,
         status: 'PAID',
       },

@@ -13,8 +13,11 @@ const getAllProducts = async (filters = {}) => {
 
   const query = {};
 
-  if (category) {
-    query.category = category;
+  if (category && category !== 'all') {
+    const categoryDoc = await Category.findOne({ name: { $regex: new RegExp(category, 'i') } });
+    if (categoryDoc) {
+      query.categories = categoryDoc._id;
+    }
   }
 
   if (featured !== undefined) {
@@ -32,7 +35,7 @@ const getAllProducts = async (filters = {}) => {
   const skip = (parseInt(page) - 1) * parseInt(limit);
 
   const products = await Product.find(query)
-    .populate('category', 'name')
+    .populate('categories', 'name')
     .sort({ featured: -1, createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
@@ -51,12 +54,12 @@ const getAllProducts = async (filters = {}) => {
 };
 
 const getProductById = async (id) => {
-  return await Product.findById(id).populate('category', 'name');
+  return await Product.findById(id).populate('categories', 'name');
 };
 
 const getFeaturedProducts = async (limit = 10) => {
   return await Product.find({ isAvailable: true, featured: true })
-    .populate('category', 'name')
+    .populate('categories', 'name')
     .sort({ createdAt: -1 })
     .limit(limit);
 };
@@ -74,11 +77,11 @@ const searchProducts = async (searchQuery, filters = {}) => {
   };
 
   if (filters.category) {
-    query.category = filters.category;
+    query.categories = filters.category;
   }
 
   const products = await Product.find(query)
-    .populate('category', 'name')
+    .populate('categories', 'name')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
@@ -96,9 +99,35 @@ const searchProducts = async (searchQuery, filters = {}) => {
   };
 };
 
+const createProduct = async (productData) => {
+  const product = await Product.create(productData);
+  return await product.populate('categories', 'name');
+};
+
+const updateProduct = async (id, productData) => {
+  const product = await Product.findByIdAndUpdate(id, productData, {
+    new: true,
+  });
+  if (!product) {
+    throw new Error('Product not found');
+  }
+  return await product.populate('categories', 'name');
+};
+
+const deleteProduct = async (id) => {
+  const product = await Product.findByIdAndDelete(id);
+  if (!product) {
+    throw new Error('Product not found');
+  }
+  return product;
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
   getFeaturedProducts,
   searchProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
 };

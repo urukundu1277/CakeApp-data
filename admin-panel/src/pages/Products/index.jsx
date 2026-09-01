@@ -1,63 +1,151 @@
 import { useState, useEffect } from 'react';
 import { productService } from '../../services/productService';
+import { categoryService } from '../../services/categoryService';
+import api from '../../services/api';
+
+const AVAILABLE_SIZES = ['0.5kg', '1kg', '1.5kg', '2kg', '2.5kg', '3kg', '5kg'];
 
 const Products = () => {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: '',
+    categories: [],
     basePrice: '',
-    images: [],
-    flavours: [],
     sizes: [],
     isAvailable: true,
     featured: false,
   });
+  const [imageFiles, setImageFiles] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
 
   const fetchProducts = async () => {
     try {
       const response = await productService.getAll();
-      setProducts(response.products || []);
+      const productsData = Array.isArray(response.products) ? response.products : [];
+      setProducts(productsData);
+      if (productsData.length === 0) {
+        setError('No products found. Add a product to get started.');
+      } else {
+        setError('');
+      }
     } catch (error) {
       console.error('Failed to fetch products:', error);
+      setError(error.response?.data?.message || 'Failed to fetch products');
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryService.getAll();
+      const categoriesData = response.data || [];
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setImageFiles(files);
+    const previews = files.map(file => URL.createObjectURL(file));
+    setPreviewUrls(previews);
+  };
+
+  const removeExistingImage = (index) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleCategory = (categoryId) => {
+    setFormData(prev => ({
+      ...prev,
+      categories: prev.categories.includes(categoryId)
+        ? prev.categories.filter(id => id !== categoryId)
+        : [...prev.categories, categoryId],
+    }));
+  };
+
+  const toggleSize = (size) => {
+    setFormData(prev => ({
+      ...prev,
+      sizes: prev.sizes.includes(size)
+        ? prev.sizes.filter(s => s !== size)
+        : [...prev.sizes, size],
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (imageFiles.length === 0 && existingImages.length === 0) {
+      alert('Please upload at least one image');
+      return;
+    }
+
+    if (formData.categories.length === 0) {
+      alert('Please select at least one category');
+      return;
+    }
+
     try {
+      const payload = new FormData();
+      payload.append('name', formData.name);
+      payload.append('description', formData.description);
+      payload.append('basePrice', formData.basePrice);
+      payload.append('categories', JSON.stringify(formData.categories));
+      payload.append('sizes', JSON.stringify(formData.sizes));
+      payload.append('isAvailable', formData.isAvailable);
+      payload.append('featured', formData.featured);
+
+      imageFiles.forEach(file => {
+        payload.append('images', file);
+      });
+
+      if (editingProduct && existingImages.length > 0) {
+        payload.append('images', JSON.stringify(existingImages));
+      }
+
       if (editingProduct) {
-        await productService.update(editingProduct._id, formData);
+        await productService.update(editingProduct._id, payload);
       } else {
-        await productService.create(formData);
+        await productService.create(payload);
       }
       fetchProducts();
-      setShowForm(false);
-      setEditingProduct(null);
-      setFormData({
-        name: '',
-        description: '',
-        category: '',
-        basePrice: '',
-        images: [],
-        flavours: [],
-        sizes: [],
-        isAvailable: true,
-        featured: false,
-      });
+      resetForm();
     } catch (error) {
       console.error('Failed to save product:', error);
+      alert(error.response?.data?.message || 'Failed to save product');
     }
+  };
+
+  const resetForm = () => {
+    setShowForm(false);
+    setEditingProduct(null);
+    setFormData({
+      name: '',
+      description: '',
+      categories: [],
+      basePrice: '',
+      sizes: [],
+      isAvailable: true,
+      featured: false,
+    });
+    setImageFiles([]);
+    setExistingImages([]);
+    setPreviewUrls([]);
   };
 
   const handleEdit = (product) => {
@@ -65,14 +153,15 @@ const Products = () => {
     setFormData({
       name: product.name,
       description: product.description,
-      category: product.category?._id || '',
+      categories: product.categories?.map(c => c._id) || [],
       basePrice: product.basePrice,
-      images: product.images || [],
-      flavours: product.flavours || [],
       sizes: product.sizes || [],
       isAvailable: product.isAvailable,
       featured: product.featured,
     });
+    setExistingImages(product.images || []);
+    setImageFiles([]);
+    setPreviewUrls([]);
     setShowForm(true);
   };
 
@@ -83,12 +172,29 @@ const Products = () => {
         fetchProducts();
       } catch (error) {
         console.error('Failed to delete product:', error);
+        alert(error.response?.data?.message || 'Failed to delete product');
       }
     }
   };
 
   if (loading) {
     return <div className="text-center py-8">Loading products...</div>;
+  }
+
+  if (error) {
+    return (
+      <div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+        <button
+          onClick={fetchProducts}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -131,6 +237,7 @@ const Products = () => {
                 </label>
                 <input
                   type="number"
+                  step="0.01"
                   value={formData.basePrice}
                   onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded"
@@ -138,6 +245,7 @@ const Products = () => {
                 />
               </div>
             </div>
+
             <div className="mt-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 Description
@@ -150,6 +258,126 @@ const Products = () => {
                 required
               />
             </div>
+
+            <div className="mt-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Categories (select multiple)
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border border-gray-300 rounded max-h-40 overflow-y-auto">
+                {categories.map((cat) => (
+                  <label
+                    key={cat._id}
+                    className="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.categories.includes(cat._id)}
+                      onChange={() => toggleCategory(cat._id)}
+                      className="mr-2 w-4 h-4 accent-blue-500"
+                    />
+                    <span className="text-sm">{cat.name}</span>
+                  </label>
+                ))}
+              </div>
+              {categories.length === 0 && (
+                <p className="text-gray-500 text-sm mt-1">No categories available. Add categories first.</p>
+              )}
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Available Quantities
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {AVAILABLE_SIZES.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => toggleSize(size)}
+                    className={`px-3 py-1 rounded border text-sm font-medium transition-colors ${
+                      formData.sizes.includes(size)
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Images
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded"
+              />
+              <p className="text-gray-500 text-xs mt-1">Upload up to 10 images (max 5MB each)</p>
+
+              {previewUrls.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {previewUrls.map((url, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={url}
+                        alt={`Preview ${index + 1}`}
+                        className="w-20 h-20 object-cover rounded border"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {editingProduct && existingImages.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-sm text-gray-600 mb-1">Existing images:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {existingImages.map((img, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={img.startsWith('http') ? img : `${api.defaults.baseURL?.replace('/api/v1', '') || ''}${img}`}
+                          alt={`Existing ${index + 1}`}
+                          className="w-20 h-20 object-cover rounded border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExistingImage(index)}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.isAvailable}
+                  onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })}
+                  className="mr-2"
+                />
+                Available
+              </label>
+              <label className="flex items-center ml-4">
+                <input
+                  type="checkbox"
+                  checked={formData.featured}
+                  onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                  className="mr-2"
+                />
+                Featured
+              </label>
+            </div>
             <div className="mt-4 flex gap-2">
               <button
                 type="submit"
@@ -159,10 +387,7 @@ const Products = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingProduct(null);
-                }}
+                onClick={resetForm}
                 className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
               >
                 Cancel

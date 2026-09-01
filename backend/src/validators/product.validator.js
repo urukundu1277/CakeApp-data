@@ -36,12 +36,16 @@ const validateProduct = [
     .trim()
     .notEmpty().withMessage('Description is required')
     .isLength({ max: 1000 }).withMessage('Description cannot exceed 1000 characters'),
-  body('category')
-    .notEmpty().withMessage('Category is required'),
+  body('categories')
+    .isArray({ min: 1 }).withMessage('At least one category is required'),
   body('basePrice')
     .isFloat({ min: 0 }).withMessage('Base price must be a positive number'),
-  body('images')
-    .isArray({ min: 1 }).withMessage('At least one image is required'),
+  validateRequest,
+];
+
+const validateProductId = [
+  body('productId')
+    .notEmpty().withMessage('Product ID is required'),
   validateRequest,
 ];
 
@@ -61,5 +65,6 @@ const validateSearch = [
 module.exports = {
   validateCategory,
   validateProduct,
+  validateProductId,
   validateSearch,
 };

@@ -1,3 +1,5 @@
+import '../core/utils/num_parsers.dart';
+
 class AddressModel {
   final String id;
   final String name;
@@ -25,16 +27,16 @@ class AddressModel {
 
   factory AddressModel.fromJson(Map<String, dynamic> json) {
     return AddressModel(
-      id: json['_id'] ?? json['id'],
-      name: json['name'] ?? '',
-      mobile: json['mobile'] ?? '',
-      addressLine1: json['addressLine1'] ?? '',
-      addressLine2: json['addressLine2'] ?? '',
-      city: json['city'] ?? '',
-      state: json['state'] ?? '',
-      pincode: json['pincode'] ?? '',
-      landmark: json['landmark'],
-      isDefault: json['isDefault'] ?? false,
+      id: parseString(json['_id'] ?? json['id']),
+      name: parseString(json['name']),
+      mobile: parseString(json['mobile']),
+      addressLine1: parseString(json['addressLine1']),
+      addressLine2: parseString(json['addressLine2']),
+      city: parseString(json['city']),
+      state: parseString(json['state']),
+      pincode: parseString(json['pincode']),
+      landmark: json['landmark']?.toString(),
+      isDefault: parseBool(json['isDefault']),
     );
   }
 

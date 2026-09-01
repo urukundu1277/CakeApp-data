@@ -3,7 +3,7 @@ const router = express.Router();
 const cartController = require('../controllers/cart.controller');
 const { protect } = require('../middleware/auth.middleware');
 const {
-  validateProduct: validateProductId,
+  validateProductId,
   validateSearch,
 } = require('../validators/product.validator');
 

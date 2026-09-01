@@ -34,6 +34,34 @@ const login = async (req, res) => {
   }
 };
 
+const mobileLogin = async (req, res) => {
+  try {
+    const { mobile, otp, name } = req.body;
+
+    if (process.env.NODE_ENV === 'development') {
+      const result = await authService.mobileLogin(mobile, name);
+      res.status(200).json({
+        success: true,
+        message: 'Mobile login successful',
+        data: result,
+      });
+      return;
+    }
+
+    const result = await authService.mobileLogin(mobile, name);
+    res.status(200).json({
+      success: true,
+      message: 'Mobile login successful',
+      data: result,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Mobile login failed',
+    });
+  }
+};
+
 const getMe = async (req, res) => {
   try {
     const user = await authService.getMe(req.user._id);
@@ -58,15 +86,24 @@ const forgotPassword = async (req, res) => {
 };
 
 const logout = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully',
-  });
+  try {
+    await authService.updateUser(req.user._id, { isActive: false });
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Logout failed',
+    });
+  }
 };
 
 module.exports = {
   register,
   login,
+  mobileLogin,
   getMe,
   forgotPassword,
   logout,

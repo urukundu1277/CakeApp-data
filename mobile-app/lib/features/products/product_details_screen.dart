@@ -1,10 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'core/theme/app_theme.dart';
-import 'core/utils/formatters.dart';
+import 'package:provider/provider.dart';
+import 'package:cake_sale_app/core/theme/app_theme.dart';
+import 'package:cake_sale_app/core/utils/formatters.dart';
+import 'package:cake_sale_app/core/utils/app_notification.dart';
+import 'package:cake_sale_app/services/cart_service.dart';
+import 'package:cake_sale_app/services/product_service.dart';
+import 'package:cake_sale_app/models/product_model.dart';
+import 'package:cake_sale_app/providers/auth_provider.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
-  const ProductDetailsScreen({super.key});
+  final String productId;
+  final String productName;
+
+  const ProductDetailsScreen({
+    super.key,
+    required this.productId,
+    this.productName = 'Chocolate Delight',
+  });
 
   @override
   State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
@@ -12,10 +25,15 @@ class ProductDetailsScreen extends StatefulWidget {
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int _quantity = 1;
-  String _selectedFlavour = 'Chocolate';
   String _selectedSize = '1kg';
-  final List<String> _flavours = ['Chocolate', 'Vanilla', 'Strawberry', 'Butterscotch'];
-  final List<String> _sizes = ['500g', '1kg', '2kg', '3kg'];
+  late Future<ProductModel> _productFuture;
+  final List<String> _sizes = ['0.5kg', '1kg', '1.5kg', '2kg', '2.5kg', '3kg', '5kg'];
+
+  @override
+  void initState() {
+    super.initState();
+    _productFuture = ProductService().getProductById(widget.productId);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,36 +47,58 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           foregroundColor: AppColors.onPrimary,
           elevation: 0,
         ),
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+        body: FutureBuilder<ProductModel>(
+          future: _productFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildProductImage(),
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
                     const SizedBox(height: 16),
-                    _buildProductInfo(),
-                    const SizedBox(height: 24),
-                    _buildFlavourSelector(),
-                    const SizedBox(height: 16),
-                    _buildSizeSelector(),
-                    const SizedBox(height: 24),
-                    _buildDescription(),
-                    const SizedBox(height: 100),
+                    Text('Failed to load product: ${snapshot.error}'),
                   ],
                 ),
-              ),
-            ),
-            _buildBottomBar(context),
-          ],
+              );
+            }
+
+            final product = snapshot.data!;
+
+            return Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildProductImage(product),
+                        const SizedBox(height: 16),
+                        _buildProductInfo(product),
+                        const SizedBox(height: 24),
+                        _buildSizeSelector(),
+                        const SizedBox(height: 24),
+                        _buildDescription(product),
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ),
+                _buildBottomBar(context, product),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildProductImage() {
+  Widget _buildProductImage(ProductModel product) {
     return Container(
       width: double.infinity,
       height: 250,
@@ -66,21 +106,38 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         color: AppColors.primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Icon(
-        Icons.cake,
-        size: 120,
-        color: AppColors.primary,
-      ),
+      child: product.primaryImage.isNotEmpty
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(
+                product.primaryImage,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: 250,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.cake,
+                    size: 120,
+                    color: AppColors.primary,
+                  );
+                },
+              ),
+            )
+          : const Icon(
+              Icons.cake,
+              size: 120,
+              color: AppColors.primary,
+            ),
     );
   }
 
-  Widget _buildProductInfo() {
+  Widget _buildProductInfo(ProductModel product) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Chocolate Delight',
-          style: TextStyle(
+        Text(
+          product.name,
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -89,29 +146,31 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         Row(
           children: [
             Text(
-              '₹${Formatters.formatCurrency(599)}',
+              '₹${Formatters.formatCurrency(product.basePrice)}',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
               ),
             ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '20% OFF',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.secondary,
+            if (product.discountPrice != null) ...[
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${((1 - product.discountPrice! / product.basePrice) * 100).toInt()}% OFF',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.secondary,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
         const SizedBox(height: 8),
@@ -127,47 +186,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFlavourSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Flavour',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: _flavours.map((flavour) {
-            final isSelected = _selectedFlavour == flavour;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedFlavour = flavour),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primary : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected ? AppColors.primary : Colors.grey[300]!,
-                  ),
-                ),
-                child: Text(
-                  flavour,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.onSurface,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
         ),
       ],
     );
@@ -218,7 +236,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Widget _buildDescription() {
+  Widget _buildDescription(ProductModel product) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -231,7 +249,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Rich and moist chocolate cake made with premium cocoa and fresh cream. Perfect for any celebration. Eggless option available.',
+          product.description,
           style: TextStyle(
             fontSize: 14,
             color: Colors.grey[700],
@@ -242,7 +260,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context) {
+  Widget _buildBottomBar(BuildContext context, ProductModel product) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -292,12 +310,34 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('$_quantity x Chocolate Delight added to cart'),
-                    ),
-                  );
+                onPressed: () async {
+                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  final token = authProvider.token;
+
+                  if (token == null || token.isEmpty) {
+                    if (mounted) {
+                      AppNotification.showWarning(context, 'Please login to add items to cart');
+                    }
+                    return;
+                  }
+
+                    try {
+                      final cartService = CartService();
+                      await cartService.addToCart(
+                        token: token,
+                        productId: widget.productId,
+                        quantity: _quantity,
+                        size: _selectedSize,
+                      );
+
+                    if (mounted) {
+                      AppNotification.showSuccess(context, '$_quantity x ${widget.productName} added to cart');
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      AppNotification.showError(context, 'Failed to add to cart: ${e.toString().replaceAll('Exception: ', '')}');
+                    }
+                  }
                 },
                 child: const Text('Add to Cart'),
               ),

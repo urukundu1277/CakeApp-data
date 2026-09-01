@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'core/theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import 'package:cake_sale_app/core/theme/app_theme.dart';
+import 'package:cake_sale_app/providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,7 +21,20 @@ class _SplashScreenState extends State<SplashScreen> {
   _navigateToNextScreen() async {
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      // Wait for auth provider to finish loading token
+      while (authProvider.isLoading) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      
+      final token = authProvider.token;
+
+      if (token != null && token.isNotEmpty) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     }
   }
 

@@ -64,4 +64,63 @@ class AddressService {
     }
     throw Exception('Failed to create address');
   }
+
+  Future<AddressModel> updateAddress({
+    required String token,
+    required String addressId,
+    required String name,
+    required String mobile,
+    required String addressLine1,
+    required String addressLine2,
+    required String city,
+    required String state,
+    required String pincode,
+    String? landmark,
+    bool isDefault = false,
+  }) async {
+    final headers = await ApiInterceptor.getHeaders(token: token);
+    final body = jsonEncode({
+      'name': name,
+      'mobile': mobile,
+      'addressLine1': addressLine1,
+      'addressLine2': addressLine2,
+      'city': city,
+      'state': state,
+      'pincode': pincode,
+      if (landmark != null) 'landmark': landmark,
+      'isDefault': isDefault,
+    });
+
+    final response = await http.put(
+      Uri.parse('${ApiConstants.baseUrl}/addresses/$addressId'),
+      headers: headers,
+      body: body,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['success']) {
+        return AddressModel.fromJson(data['data']);
+      }
+      throw Exception(data['message']);
+    }
+    throw Exception('Failed to update address');
+  }
+
+  Future<void> deleteAddress({
+    required String token,
+    required String addressId,
+  }) async {
+    final headers = await ApiInterceptor.getHeaders(token: token);
+
+    final response = await http.delete(
+      Uri.parse('${ApiConstants.baseUrl}/addresses/$addressId'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200) {
+      final data = jsonDecode(response.body);
+      throw Exception(data['message'] ?? 'Failed to delete address');
+    }
+  }
 }

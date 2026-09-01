@@ -82,6 +82,37 @@ const login = async (email, password) => {
   };
 };
 
+const mobileLogin = async (mobile, name) => {
+  let user = await User.findOne({ mobile });
+
+  if (!user) {
+    user = await User.create({
+      name: name || 'User',
+      email: `${mobile}@temp.com`,
+      mobile,
+      password: Math.random().toString(36),
+      role: 'CUSTOMER',
+    });
+  } else if (name && user.name === 'User') {
+    user.name = name;
+    await user.save();
+  }
+
+  const token = generateToken(user._id);
+
+  return {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+      role: user.role,
+      isActive: user.isActive,
+    },
+    token,
+  };
+};
+
 const getMe = async (userId) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -92,8 +123,25 @@ const getMe = async (userId) => {
   return user;
 };
 
+const updateUser = async (userId, updateData) => {
+  const user = await User.findByIdAndUpdate(userId, updateData, {
+    new: true,
+    runValidators: true,
+  }).select('-password');
+
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return user;
+};
+
 module.exports = {
   register,
   login,
+  mobileLogin,
   getMe,
+  updateUser,
 };

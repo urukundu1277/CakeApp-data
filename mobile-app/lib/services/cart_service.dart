@@ -1,11 +1,8 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../core/constants/api_constants.dart';
 import '../core/network/api_interceptor.dart';
-import '../core/constants/storage_constants.dart';
 import '../models/cart_model.dart';
-import '../models/address_model.dart';
 
 class CartService {
   Future<CartModel> getCart(String token) async {
@@ -29,14 +26,12 @@ class CartService {
     required String token,
     required String productId,
     int quantity = 1,
-    String? flavour,
     String? size,
   }) async {
     final headers = await ApiInterceptor.getHeaders(token: token);
     final body = jsonEncode({
       'productId': productId,
       'quantity': quantity,
-      if (flavour != null) 'flavour': flavour,
       if (size != null) 'size': size,
     });
 

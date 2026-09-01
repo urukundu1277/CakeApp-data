@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'core/theme/app_theme.dart';
+import '../core/theme/app_theme.dart';
 
 class AppButton extends StatelessWidget {
   final String text;
@@ -50,10 +50,14 @@ class AppButton extends StatelessWidget {
 
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
-      style: ElevatedButton(
+      style: ElevatedButton.styleFrom(
         backgroundColor: bgColor,
         foregroundColor: txtColor,
-      ).style,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
       child: isLoading
           ? const SizedBox(
               height: 20,

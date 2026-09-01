@@ -8,13 +8,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    const userData = localStorage.getItem('admin_user');
+    try {
+      const token = localStorage.getItem('admin_token');
+      const userData = localStorage.getItem('admin_user');
 
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+      if (token && userData) {
+        setUser(JSON.parse(userData));
+      }
+    } catch (error) {
+      console.error('Failed to parse admin user from localStorage', error);
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (email, password) => {

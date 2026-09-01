@@ -14,10 +14,6 @@ const orderItemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  flavour: {
-    type: String,
-    trim: true,
-  },
   size: {
     type: String,
     trim: true,
@@ -130,6 +126,17 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ['PLACED', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'],
     default: 'PLACED',
+  },
+  cancellationReason: {
+    type: String,
+    maxlength: [500, 'Cancellation reason cannot exceed 500 characters'],
+  },
+  cancelledBy: {
+    type: String,
+    enum: ['CUSTOMER', 'ADMIN', 'SYSTEM'],
+  },
+  cancelledAt: {
+    type: Date,
   },
 }, {
   timestamps: true,

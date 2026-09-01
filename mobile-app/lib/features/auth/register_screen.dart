@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'core/theme/app_theme.dart';
-import 'core/utils/validators.dart';
+import 'package:cake_sale_app/core/theme/app_theme.dart';
+import 'package:cake_sale_app/core/utils/validators.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});

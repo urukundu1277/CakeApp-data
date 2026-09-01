@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import { userService } from '../../services/userService';
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -11,12 +11,26 @@ const Customers = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await api.get('/users');
-      setCustomers(response.data.data || []);
+      const response = await userService.getAll();
+      setCustomers(response.data || []);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this customer?')) {
+      return;
+    }
+
+    try {
+      await userService.delete(id);
+      setCustomers(customers.filter((customer) => customer._id !== id));
+    } catch (error) {
+      console.error('Failed to delete customer:', error);
+      alert(error.response?.data?.message || 'Failed to delete customer');
     }
   };
 
@@ -46,6 +60,9 @@ const Customers = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Joined
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -69,6 +86,14 @@ const Customers = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {new Date(customer.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <button
+                    onClick={() => handleDelete(customer._id)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}

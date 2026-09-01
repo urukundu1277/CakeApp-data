@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'core/theme/app_theme.dart';
-import 'core/utils/validators.dart';
+import 'package:provider/provider.dart';
+import 'package:cake_sale_app/core/theme/app_theme.dart';
+import 'package:cake_sale_app/core/utils/validators.dart';
+import 'package:cake_sale_app/core/utils/app_notification.dart';
+import 'package:cake_sale_app/services/auth_service.dart';
+import 'package:cake_sale_app/providers/auth_provider.dart';
+import 'package:cake_sale_app/models/user_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,31 +17,92 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final _nameController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _otpController = TextEditingController();
   bool _isLoading = false;
+  bool _otpSent = false;
+  int _resendTimer = 0;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _nameController.dispose();
+    _mobileController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
-  void _handleLogin() async {
+  Future<void> _sendOtp() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      await Future.delayed(const Duration(seconds: 1));
+      try {
+        await Future.delayed(const Duration(milliseconds: 500));
 
-      setState(() => _isLoading = false);
+        setState(() {
+          _otpSent = true;
+          _resendTimer = 30;
+        });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login successful!')),
+        _startResendTimer();
+
+        if (mounted) {
+          AppNotification.showInfo(context, 'OTP sent! Use 123456 for demo');
+        }
+      } catch (e) {
+        if (mounted) {
+          AppNotification.showError(context, 'Failed to send OTP: $e');
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
+
+  void _startResendTimer() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted && _resendTimer > 0) {
+        setState(() => _resendTimer--);
+        _startResendTimer();
+      }
+    });
+  }
+
+  Future<void> _verifyOtp() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+
+      try {
+        final authService = AuthService();
+        final result = await authService.mobileLogin(
+          name: _nameController.text.trim(),
+          mobile: _mobileController.text.trim(),
         );
-        Navigator.pushReplacementNamed(context, '/home');
+
+        final token = result['token'];
+        final userData = result['user'];
+        if (token != null && mounted) {
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          await authProvider.setToken(token);
+          if (userData != null) {
+            await authProvider.setUser(UserModel.fromJson(userData));
+          }
+
+          if (mounted) {
+            AppNotification.showSuccess(context, 'Login successful!');
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          AppNotification.showError(context, e.toString().replaceAll('Exception: ', ''));
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -64,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const SizedBox(height: 60),
                     const Text(
-                      'Welcome Back',
+                      'Welcome',
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -73,9 +139,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Login to your account',
-                      style: TextStyle(
+                    Text(
+                      _otpSent ? 'Enter OTP' : 'Enter your details',
+                      style: const TextStyle(
                         fontSize: 16,
                         color: Colors.white70,
                       ),
@@ -90,102 +156,109 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: Column(
                         children: [
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                              hintText: 'Enter your email',
-                              prefixIcon: Icon(Icons.email_outlined),
+                          if (!_otpSent) ...[
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Name',
+                                hintText: 'Enter your full name',
+                                prefixIcon: Icon(Icons.person_outline),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().length < 2) {
+                                  return 'Please enter a valid name';
+                                }
+                                return null;
+                              },
                             ),
-                            validator: (value) {
-                              if (!Validators.isValidEmail(value ?? '')) {
-                                return 'Please enter a valid email';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              hintText: 'Enter your password',
-                              prefixIcon: const Icon(Icons.lock_outlined),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                ),
-                                onPressed: () {
-                                  setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  );
-                                },
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _mobileController,
+                              keyboardType: TextInputType.phone,
+                              decoration: const InputDecoration(
+                                labelText: 'Mobile Number',
+                                hintText: 'Enter 10-digit mobile number',
+                                prefixIcon: Icon(Icons.phone_outlined),
+                              ),
+                              validator: (value) {
+                                if (!Validators.isValidMobile(value ?? '')) {
+                                  return 'Please enter a valid 10-digit mobile number';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _sendOtp,
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Text('Send OTP'),
                               ),
                             ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _handleLogin,
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : const Text('Login'),
+                          ] else ...[
+                            TextFormField(
+                              controller: _otpController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              maxLength: 6,
+                              decoration: const InputDecoration(
+                                labelText: 'OTP',
+                                hintText: 'Enter 6-digit OTP',
+                                prefixIcon: Icon(Icons.pin_outlined),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.length != 6) {
+                                  return 'Please enter valid 6-digit OTP';
+                                }
+                                return null;
+                              },
                             ),
-                          ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _verifyOtp,
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Text('Verify & Login'),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextButton(
+                              onPressed: _resendTimer > 0
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _otpSent = false;
+                                        _resendTimer = 30;
+                                        _otpController.clear();
+                                      });
+                                    },
+                              child: Text(
+                                _resendTimer > 0
+                                    ? 'Resend OTP in $_resendTimer s'
+                                    : 'Resend OTP',
+                              ),
+                            ),
+                          ],
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/forgot-password');
-                      },
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Don\'t have an account? ',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/register');
-                          },
-                          child: const Text(
-                            'Register',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),

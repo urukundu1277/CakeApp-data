@@ -1,27 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
-import 'core/theme/app_theme.dart';
-import 'core/utils/formatters.dart';
-import 'core/constants/app_constants.dart';
-import 'core/routes/app_routes.dart';
-import 'models/cart_model.dart';
-import 'models/address_model.dart';
-import 'models/order_model.dart';
-import 'services/address_service.dart';
-import 'services/order_service.dart';
-import 'services/payment_service.dart';
+import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/utils/formatters.dart';
+import '../../core/utils/app_notification.dart';
+import '../../core/routes/app_routes.dart';
+import '../../models/cart_model.dart';
+import '../../models/address_model.dart';
+import '../../services/address_service.dart';
+import '../../services/order_service.dart';
+import '../../services/cart_service.dart';
+import '../../widgets/loading_widget.dart';
+import '../../providers/auth_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
-  final String token;
-  final CartModel cart;
+  final CartModel? cart;
   final double deliveryFee;
 
   const CheckoutScreen({
     super.key,
-    required this.token,
-    required this.cart,
+    this.cart,
     required this.deliveryFee,
   });
 
@@ -33,12 +32,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   late Future<List<AddressModel>> _addressesFuture;
   final AddressService _addressService = AddressService();
   final OrderService _orderService = OrderService();
-  final PaymentService _paymentService = PaymentService();
-  late Razorpay _razorpay;
+  final CartService _cartService = CartService();
 
   AddressModel? _selectedAddress;
   DateTime? _selectedDate;
   String? _selectedTimeSlot;
+  String _paymentMethod = 'COD';
   final TextEditingController _cakeMessageController = TextEditingController();
   bool _isLoading = false;
 
@@ -54,85 +53,62 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    _addressesFuture = _addressService.getAddresses(widget.token);
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    _initCheckout();
+  }
+
+  Future<void> _initCheckout() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.token;
+
+    if (token == null || token.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to checkout')),
+        );
+        Navigator.pop(context);
+      }
+      return;
+    }
+
+    setState(() {
+      _addressesFuture = _addressService.getAddresses(token);
+    });
   }
 
   @override
   void dispose() {
-    _razorpay.clear();
     _cakeMessageController.dispose();
     super.dispose();
   }
 
-  void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Payment successful!')),
-    );
-
-    Navigator.pushReplacementNamed(
-      context,
-      AppRoutes.orders,
-      arguments: {'paymentSuccess': true},
-    );
-  }
-
-  void _handlePaymentError(PaymentFailureResponse response) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Payment failed: ${response.message}')),
-    );
-  }
-
-  void _handleExternalWallet(ExternalWalletResponse response) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('External wallet selected: ${response.walletName}')),
-    );
-  }
-
-  Future<void> _openRazorpayCheckout(String razorpayOrderId, double amount) async {
-    try {
-      final options = {
-        'key': 'your_razorpay_key_id',
-        'amount': amount * 100,
-        'currency': 'INR',
-        'name': 'Cake Sale',
-        'description': 'Order Payment',
-        'order_id': razorpayOrderId,
-        'prefill': {
-          'contact': '',
-          'email': '',
-        },
-        'theme': {
-          'color': '#E91E63',
-        },
-      };
-
-      _razorpay.open(options);
-    } catch (e) {
-      _showError('Failed to open payment gateway: $e');
-    }
-  }
-
   Future<void> _placeOrder() async {
-    if (_selectedAddress == null || _selectedDate == null || _selectedTimeSlot == null) {
-      _showError('Please fill all required fields');
+    if (_selectedAddress == null) {
+      _showError('Please select a delivery address');
+      return;
+    }
+    if (_selectedDate == null || _selectedTimeSlot == null) {
+      _showError('Please select delivery date and time slot');
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.token;
+
+    if (token == null || token.isEmpty) {
+      _showError('Please login to place order');
+      return;
+    }
+
+    if (_selectedAddress!.id.isEmpty) {
+      _showError('Invalid address selected. Please add a new address.');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      final order = await _orderService.createOrder(
-        token: widget.token,
+      await _orderService.createOrder(
+        token: token,
         addressId: _selectedAddress!.id,
         deliveryDate: DateFormat('yyyy-MM-dd').format(_selectedDate!),
         deliveryTimeSlot: _selectedTimeSlot!,
@@ -141,28 +117,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             : _cakeMessageController.text,
       );
 
-      final paymentData = await _paymentService.createPaymentOrder(
-        token: widget.token,
-        orderId: order.orderNumber,
-        amount: widget.cart.totalAmount + widget.deliveryFee,
-      );
+      await _cartService.clearCart(token);
 
-      await _openRazorpayCheckout(
-        paymentData['razorpayOrderId'],
-        widget.cart.totalAmount + widget.deliveryFee,
-      );
+      if (mounted) {
+        AppNotification.showSuccess(context, 'Order placed successfully!');
+        Navigator.pushReplacementNamed(
+          context,
+          AppRoutes.orders,
+          arguments: {'orderSuccess': true},
+        );
+      }
     } catch (e) {
-      _showError(e.toString());
+      final errorMessage = e.toString().replaceAll('Exception: ', '');
+      if (errorMessage.contains('Address not found')) {
+        if (mounted) AppNotification.showError(context, 'Delivery address not found. Please add a new address.');
+      } else {
+        if (mounted) AppNotification.showError(context, errorMessage);
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   void _showError(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      AppNotification.showError(context, message);
     }
   }
 
@@ -172,28 +153,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: AppColors.background,
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: const Text('Checkout'),
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.onPrimary,
           elevation: 0,
         ),
-        body: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildAddressSection(),
-                  const SizedBox(height: 24),
-                  _buildDeliverySection(),
-                  const SizedBox(height: 24),
-                  _buildOrderSummary(),
-                ],
-              ),
-            ),
-            _buildPlaceOrderButton(),
-          ],
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Column(
+            children: [
+              _buildAddressSection(),
+              const SizedBox(height: 24),
+              _buildDeliverySection(),
+              const SizedBox(height: 24),
+              _buildPaymentSection(),
+              const SizedBox(height: 24),
+              _buildOrderSummary(),
+              const SizedBox(height: 24),
+              _buildPlaceOrderButton(),
+              SizedBox(height: MediaQuery.of(context).viewInsets.bottom + 24),
+            ],
+          ),
         ),
       ),
     );
@@ -203,9 +186,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Delivery Address',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Delivery Address',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                final result = await Navigator.pushNamed(context, '/add-address');
+                if (result == true) {
+                  _refreshAddresses();
+                }
+              },
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add New'),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         FutureBuilder<List<AddressModel>>(
@@ -229,14 +227,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     const Text('No addresses found'),
                     const SizedBox(height: 8),
                     ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/add-address');
+                      onPressed: () async {
+                        final result = await Navigator.pushNamed(context, '/add-address');
+                        if (result == true) {
+                          _refreshAddresses();
+                        }
                       },
                       child: const Text('Add Address'),
                     ),
                   ],
                 ),
               );
+            }
+
+            if (_selectedAddress == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  final defaultAddress = addresses.firstWhere(
+                    (addr) => addr.isDefault,
+                    orElse: () => addresses.first,
+                  );
+                  setState(() {
+                    _selectedAddress = defaultAddress;
+                  });
+                }
+              });
             }
 
             return Column(
@@ -290,6 +305,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       ],
     );
+  }
+
+  void _refreshAddresses() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.token;
+    if (token != null && token.isNotEmpty) {
+      setState(() {
+        _addressesFuture = _addressService.getAddresses(token);
+      });
+    }
   }
 
   Widget _buildDeliverySection() {
@@ -380,8 +405,48 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  Widget _buildPaymentSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Payment Method',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              RadioListTile<String>(
+                value: 'COD',
+                groupValue: _paymentMethod,
+                onChanged: (value) => setState(() => _paymentMethod = value!),
+                title: const Row(
+                  children: [
+                    Icon(Icons.money, color: Colors.green),
+                    SizedBox(width: 12),
+                    Text('Cash on Delivery'),
+                  ],
+                ),
+                subtitle: const Text('Pay when your order is delivered'),
+                activeColor: AppColors.primary,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildOrderSummary() {
-    final subtotal = widget.cart.totalAmount;
+    if (widget.cart == null) {
+      return const SizedBox.shrink();
+    }
+    final subtotal = widget.cart!.totalAmount;
     final total = subtotal + widget.deliveryFee;
 
     return Column(
@@ -440,37 +505,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildPlaceOrderButton() {
-    final total = widget.cart.totalAmount + widget.deliveryFee;
+    if (widget.cart == null) {
+      return const SizedBox.shrink();
+    }
+    final total = widget.cart!.totalAmount + widget.deliveryFee;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _placeOrder,
-          style: ElevatedButton(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : Text('Pay ${Formatters.formatCurrency(total)}'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _placeOrder,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
         ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text('Place Order - ${Formatters.formatCurrency(total)}'),
       ),
     );
   }

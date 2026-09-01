@@ -95,28 +95,98 @@ const searchProducts = async (req, res) => {
   }
 };
 
+const parseProductBody = (req, res, next) => {
+  try {
+    const body = { ...req.body };
+
+    if (body.categories) {
+      try {
+        body.categories = JSON.parse(body.categories);
+      } catch {
+        if (typeof body.categories === 'string') {
+          body.categories = [body.categories];
+        }
+      }
+    }
+
+    if (body.sizes) {
+      try {
+        body.sizes = JSON.parse(body.sizes);
+      } catch {
+        if (typeof body.sizes === 'string') {
+          body.sizes = body.sizes.split(',').map(s => s.trim()).filter(s => s);
+        }
+      }
+    }
+
+    if (req.files && req.files.length > 0) {
+      body.images = req.files.map(file => `/uploads/${file.filename}`);
+    } else if (body.images) {
+      try {
+        body.images = JSON.parse(body.images);
+      } catch {
+        if (typeof body.images === 'string') {
+          body.images = body.images.split(',').map(s => s.trim()).filter(s => s);
+        }
+      }
+    }
+
+    req.body = body;
+    next();
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid form data',
+    });
+  }
+};
+
 const createProduct = async (req, res) => {
-  res.status(201).json({
-    success: true,
-    message: 'Product created successfully',
-    data: req.body,
-  });
+  try {
+    const product = await productService.createProduct(req.body);
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      data: product,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to create product',
+    });
+  }
 };
 
 const updateProduct = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Product updated successfully',
-    data: { ...req.body, _id: req.params.id },
-  });
+  try {
+    const product = await productService.updateProduct(req.params.id, req.body);
+    res.status(200).json({
+      success: true,
+      message: 'Product updated successfully',
+      data: product,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to update product',
+    });
+  }
 };
 
 const deleteProduct = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Product deleted successfully',
-    data: { _id: req.params.id },
-  });
+  try {
+    const product = await productService.deleteProduct(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: 'Product deleted successfully',
+      data: product,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to delete product',
+    });
+  }
 };
 
 module.exports = {
@@ -127,4 +197,5 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  parseProductBody,
 };

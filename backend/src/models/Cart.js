@@ -12,10 +12,6 @@ const cartItemSchema = new mongoose.Schema({
     min: [1, 'Quantity must be at least 1'],
     default: 1,
   },
-  flavour: {
-    type: String,
-    trim: true,
-  },
   size: {
     type: String,
     trim: true,

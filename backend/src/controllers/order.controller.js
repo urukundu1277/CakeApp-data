@@ -58,7 +58,6 @@ const createOrder = async (req, res) => {
         product: item.product._id,
         name: item.product.name,
         image: item.product.images[0] || '',
-        flavour: item.flavour,
         size: item.size,
         quantity: item.quantity,
         price: item.price,
@@ -154,7 +153,31 @@ const getOrderById = async (req, res) => {
 
 const cancelOrder = async (req, res) => {
   try {
-    const order = await orderService.cancelOrder(req.params.id, req.user._id);
+    const { cancellationReason } = req.body;
+    const order = await orderService.cancelOrder(req.params.id, req.user._id, {
+      cancellationReason,
+      cancelledBy: 'CUSTOMER',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Order cancelled successfully',
+      data: order,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to cancel order',
+    });
+  }
+};
+
+const adminCancelOrder = async (req, res) => {
+  try {
+    const { cancellationReason } = req.body;
+    const order = await orderService.adminCancelOrder(req.params.id, req.user._id, {
+      cancellationReason,
+    });
 
     res.status(200).json({
       success: true,

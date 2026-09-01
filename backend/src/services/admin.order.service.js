@@ -53,13 +53,50 @@ const updateOrderStatus = async (orderId, status) => {
   return order;
 };
 
-const cancelOrder = async (orderId) => {
+const cancelOrder = async (orderId, cancellationReason) => {
   const order = await Order.findByIdAndUpdate(
     orderId,
-    { orderStatus: 'CANCELLED' },
+    {
+      orderStatus: 'CANCELLED',
+      cancellationReason: cancellationReason || 'Cancelled by shop owner',
+      cancelledBy: 'ADMIN',
+      cancelledAt: new Date(),
+    },
     { new: true, runValidators: true }
   );
   return order;
+};
+
+const getDashboardStats = async () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const totalOrders = await Order.countDocuments();
+  const todayOrders = await Order.countDocuments({ createdAt: { $gte: today } });
+  const pendingOrders = await Order.countDocuments({ orderStatus: 'PLACED' });
+  const completedOrders = await Order.countDocuments({ orderStatus: 'DELIVERED' });
+  const cancelledOrders = await Order.countDocuments({ orderStatus: 'CANCELLED' });
+
+  const revenueResult = await Order.aggregate([
+    { $match: { orderStatus: 'DELIVERED' } },
+    { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+  ]);
+  const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
+
+  const recentOrders = await Order.find()
+    .populate('user', 'name email mobile')
+    .sort({ createdAt: -1 })
+    .limit(5);
+
+  return {
+    totalOrders,
+    todayOrders,
+    pendingOrders,
+    completedOrders,
+    cancelledOrders,
+    totalRevenue,
+    recentOrders,
+  };
 };
 
 module.exports = {
@@ -67,4 +104,5 @@ module.exports = {
   getOrderById,
   updateOrderStatus,
   cancelOrder,
+  getDashboardStats,
 };

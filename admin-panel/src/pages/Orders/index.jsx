@@ -6,6 +6,9 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
+  const [cancelReason, setCancelReason] = useState('');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -33,7 +36,29 @@ const Orders = () => {
       setSelectedOrder(null);
     } catch (error) {
       console.error('Failed to update order status:', error);
+      alert('Failed to update order status: ' + error.message);
     }
+  };
+
+  const handleCancelOrder = async () => {
+    try {
+      await orderService.cancelOrder(orderToCancel._id, cancelReason || 'Cancelled by shop owner');
+      setShowCancelModal(false);
+      setCancelReason('');
+      setOrderToCancel(null);
+      fetchOrders();
+      setSelectedOrder(null);
+      alert('Order cancelled successfully');
+    } catch (error) {
+      console.error('Failed to cancel order:', error);
+      alert('Failed to cancel order: ' + error.message);
+    }
+  };
+
+  const openCancelModal = (order) => {
+    setOrderToCancel(order);
+    setCancelReason('');
+    setShowCancelModal(true);
   };
 
   const getStatusColor = (status) => {
@@ -47,6 +72,10 @@ const Orders = () => {
       CANCELLED: 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const canCancelOrder = (order) => {
+    return ['PLACED', 'CONFIRMED', 'PREPARING', 'READY'].includes(order.orderStatus);
   };
 
   if (loading) {
@@ -118,13 +147,21 @@ const Orders = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   {new Date(order.createdAt).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap space-x-2">
                   <button
                     onClick={() => setSelectedOrder(order)}
                     className="text-blue-600 hover:text-blue-900"
                   >
                     View
                   </button>
+                  {canCancelOrder(order) && (
+                    <button
+                      onClick={() => openCancelModal(order)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -133,7 +170,7 @@ const Orders = () => {
       </div>
 
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-screen overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Order Details</h3>
@@ -152,13 +189,19 @@ const Orders = () => {
                 <strong>Customer:</strong> {selectedOrder.user?.name}
               </div>
               <div>
+                <strong>Customer Mobile:</strong> {selectedOrder.user?.mobile}
+              </div>
+              <div>
                 <strong>Total Amount:</strong> ₹{selectedOrder.totalAmount}
               </div>
               <div>
                 <strong>Payment Status:</strong> {selectedOrder.paymentStatus}
               </div>
               <div>
-                <strong>Order Status:</strong> {selectedOrder.orderStatus}
+                <strong>Order Status:</strong>{' '}
+                <span className={`px-2 py-1 text-xs rounded ${getStatusColor(selectedOrder.orderStatus)}`}>
+                  {selectedOrder.orderStatus}
+                </span>
               </div>
               <div>
                 <strong>Delivery Date:</strong>{' '}
@@ -172,6 +215,17 @@ const Orders = () => {
                   <strong>Message:</strong> {selectedOrder.cakeMessage}
                 </div>
               )}
+              {selectedOrder.orderStatus === 'CANCELLED' && selectedOrder.cancellationReason && (
+                <div className="bg-red-50 border border-red-200 rounded p-3">
+                  <strong className="text-red-700">Cancellation Reason:</strong>
+                  <p className="text-red-600 mt-1">{selectedOrder.cancellationReason}</p>
+                  {selectedOrder.cancelledBy && (
+                    <p className="text-red-500 text-sm mt-1">
+                      Cancelled by: {selectedOrder.cancelledBy === 'ADMIN' ? 'Shop Owner' : 'Customer'}
+                    </p>
+                  )}
+                </div>
+              )}
               <div>
                 <strong>Items:</strong>
                 <ul className="list-disc list-inside mt-2">
@@ -182,12 +236,23 @@ const Orders = () => {
                   ))}
                 </ul>
               </div>
+              {canCancelOrder(selectedOrder) && (
+                <div className="pt-4 border-t">
+                  <button
+                    onClick={() => openCancelModal(selectedOrder)}
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    Cancel Order
+                  </button>
+                </div>
+              )}
               <div>
                 <strong>Update Status:</strong>
                 <select
                   value={selectedOrder.orderStatus}
                   onChange={(e) => handleStatusUpdate(selectedOrder._id, e.target.value)}
                   className="ml-2 px-3 py-2 border border-gray-300 rounded"
+                  disabled={selectedOrder.orderStatus === 'CANCELLED'}
                 >
                   <option value="PLACED">Placed</option>
                   <option value="CONFIRMED">Confirmed</option>
@@ -198,6 +263,47 @@ const Orders = () => {
                   <option value="CANCELLED">Cancelled</option>
                 </select>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Cancel Order</h3>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to cancel order <strong>{orderToCancel?.orderNumber}</strong>?
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reason for cancellation
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Enter reason for cancellation..."
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setCancelReason('');
+                  setOrderToCancel(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+              >
+                No, Keep Order
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Yes, Cancel Order
+              </button>
             </div>
           </div>
         </div>

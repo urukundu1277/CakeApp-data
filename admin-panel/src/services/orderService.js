@@ -15,4 +15,14 @@ export const orderService = {
     const response = await api.put(`/admin/orders/${id}/status`, { orderStatus: status });
     return response.data;
   },
+
+  cancelOrder: async (id, cancellationReason) => {
+    const response = await api.put(`/admin/orders/${id}/cancel`, { cancellationReason });
+    return response.data;
+  },
+
+  getDashboardStats: async () => {
+    const response = await api.get('/admin/orders/stats');
+    return response.data;
+  },
 };

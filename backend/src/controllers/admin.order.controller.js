@@ -92,10 +92,51 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+const cancelOrder = async (req, res) => {
+  try {
+    const { cancellationReason } = req.body;
+    const order = await adminOrderService.cancelOrder(req.params.id, cancellationReason);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Order cancelled successfully',
+      data: order,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to cancel order',
+    });
+  }
+};
+
+const getDashboardStats = async (req, res) => {
+  try {
+    const stats = await adminOrderService.getDashboardStats();
+    res.status(200).json({
+      success: true,
+      message: 'Dashboard stats retrieved successfully',
+      data: stats,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to retrieve dashboard stats',
+    });
+  }
+};
+
 module.exports = {
   validateRequest,
   validateStatusUpdate,
   getAllOrders,
   getOrderById,
   updateOrderStatus,
+  cancelOrder,
+  getDashboardStats,
 };

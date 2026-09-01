@@ -12,18 +12,14 @@ const productSchema = new mongoose.Schema({
     required: [true, 'Description is required'],
     maxlength: [1000, 'Description cannot exceed 1000 characters'],
   },
-  category: {
+  categories: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: [true, 'Category is required'],
-  },
+    required: true,
+  }],
   images: [{
     type: String,
     required: true,
-  }],
-  flavours: [{
-    type: String,
-    trim: true,
   }],
   sizes: [{
     type: String,
@@ -64,11 +60,22 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  reviewCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
 }, {
   timestamps: true,
 });
 
-productSchema.index({ category: 1 });
+productSchema.index({ categories: 1 });
 productSchema.index({ isAvailable: 1 });
 productSchema.index({ featured: 1 });
 productSchema.index({ name: 'text', description: 'text' });

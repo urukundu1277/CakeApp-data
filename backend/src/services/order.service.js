@@ -21,7 +21,7 @@ const getOrderById = async (orderId, userId) => {
   return await Order.findOne({ _id: orderId, user: userId });
 };
 
-const cancelOrder = async (orderId, userId) => {
+const cancelOrder = async (orderId, userId, { cancellationReason, cancelledBy } = {}) => {
   const order = await Order.findOne({ _id: orderId, user: userId });
   if (!order) {
     const error = new Error('Order not found');
@@ -34,6 +34,34 @@ const cancelOrder = async (orderId, userId) => {
     throw error;
   }
   order.orderStatus = 'CANCELLED';
+  order.cancellationReason = cancellationReason || null;
+  order.cancelledBy = cancelledBy || 'CUSTOMER';
+  order.cancelledAt = new Date();
+  await order.save();
+  return order;
+};
+
+const adminCancelOrder = async (orderId, adminId, { cancellationReason } = {}) => {
+  const order = await Order.findById(orderId);
+  if (!order) {
+    const error = new Error('Order not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (order.orderStatus === 'CANCELLED') {
+    const error = new Error('Order is already cancelled');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (order.orderStatus === 'DELIVERED') {
+    const error = new Error('Cannot cancel a delivered order');
+    error.statusCode = 400;
+    throw error;
+  }
+  order.orderStatus = 'CANCELLED';
+  order.cancellationReason = cancellationReason || 'Cancelled by shop owner';
+  order.cancelledBy = 'ADMIN';
+  order.cancelledAt = new Date();
   await order.save();
   return order;
 };

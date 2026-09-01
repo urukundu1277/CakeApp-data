@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'core/theme/app_theme.dart';
-import 'services/notification_service.dart';
+import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
+import '../../services/notification_service.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/loading_widget.dart';
+import '../../widgets/app_error_widget.dart';
+import '../../providers/auth_provider.dart';
 
 class NotificationModel {
   final String id;
@@ -24,20 +27,18 @@ class NotificationModel {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['_id'] ?? json['id'],
+      id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? '',
-      message: json['message'] ?? '',
-      type: json['type'] ?? 'SYSTEM',
-      isRead: json['isRead'] ?? false,
-      createdAt: DateTime.parse(json['createdAt']),
+      message: json['message'] ?? json['body'] ?? '',
+      type: json['type'] ?? 'general',
+      isRead: json['isRead'] ?? json['read'] ?? false,
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }
 }
 
 class NotificationsScreen extends StatefulWidget {
-  final String token;
-
-  const NotificationsScreen({super.key, required this.token});
+  const NotificationsScreen({super.key});
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -54,8 +55,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<List<NotificationModel>> _loadNotifications() async {
-    final notifications = await _notificationService.getNotifications(widget.token);
-    return notifications.map((n) => NotificationModel.fromJson(n)).toList();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.token;
+
+    if (token == null || token.isEmpty) {
+      return [];
+    }
+
+    try {
+      final notifications = await _notificationService.getNotifications(token);
+      return notifications.map((n) => NotificationModel.fromJson(n)).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<void> _refreshNotifications() async {
@@ -93,7 +105,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               icon: const Icon(Icons.check_circle_outline),
               onPressed: () async {
                 try {
-                  await _notificationService.markAllAsRead(widget.token);
+                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  final token = authProvider.token;
+
+                  if (token == null || token.isEmpty) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please login to manage notifications')),
+                      );
+                    }
+                    return;
+                  }
+
+                  await _notificationService.markAllAsRead(token);
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('All notifications marked as read')),
@@ -119,7 +143,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             }
 
             if (snapshot.hasError) {
-              return ErrorWidget(
+              return AppErrorWidget(
                 message: snapshot.error.toString(),
                 onRetry: _refreshNotifications,
               );

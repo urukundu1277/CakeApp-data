@@ -8,7 +8,7 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running in ${config.env} mode on port ${PORT}`);
       console.log(`API: http://localhost:${PORT}/api/v1`);
       console.log(`Health: http://localhost:${PORT}/health`);

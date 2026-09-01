@@ -12,12 +12,20 @@ export const productService = {
   },
 
   create: async (productData) => {
-    const response = await api.post('/products', productData);
+    const response = await api.post('/products', productData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 
   update: async (id, productData) => {
-    const response = await api.put(`/products/${id}`, productData);
+    const response = await api.put(`/products/${id}`, productData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 
