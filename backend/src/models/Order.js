@@ -18,6 +18,10 @@ const orderItemSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  flavor: {
+    type: String,
+    trim: true,
+  },
   quantity: {
     type: Number,
     required: true,

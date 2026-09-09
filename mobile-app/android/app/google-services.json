@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "386331454775",
+    "project_id": "cakeapp-b5459",
+    "storage_bucket": "cakeapp-b5459.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:386331454775:android:2a4e062dbe55fe27ecfeb2",
+        "android_client_info": {
+          "package_name": "com.cakesale.cake_sale_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPuIjyYP-89DOFSTsZh1z6JE3uJqJGSME"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cake_sale_app/core/theme/app_theme.dart';
+import 'package:cake_sale_app/services/auth_service.dart';
 import 'package:cake_sale_app/providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -22,18 +23,36 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
       // Wait for auth provider to finish loading token
       while (authProvider.isLoading) {
         await Future.delayed(const Duration(milliseconds: 100));
       }
-      
+
       final token = authProvider.token;
 
       if (token != null && token.isNotEmpty) {
-        Navigator.pushReplacementNamed(context, '/home');
+        // If token exists but user data is missing, fetch from backend
+        if (authProvider.user == null) {
+          try {
+            final userData = await AuthService().getMe(token);
+            await authProvider.setUser(userData);
+          } catch (e) {
+            // If fetch fails, clear token and go to login
+            await authProvider.logout();
+            if (mounted) {
+              Navigator.pushReplacementNamed(context, '/login');
+            }
+            return;
+          }
+        }
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       } else {
-        Navigator.pushReplacementNamed(context, '/login');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
       }
     }
   }
@@ -70,12 +89,13 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Cake Sale',
+                  'OrderCake',
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 const Text(

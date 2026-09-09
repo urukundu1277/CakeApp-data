@@ -42,12 +42,19 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> setUser(dynamic user) async {
+    final prefs = await SharedPreferences.getInstance();
+    final previousUserId = _user?.id;
+
     if (user is UserModel) {
       _user = user;
     } else if (user is Map<String, dynamic>) {
       _user = UserModel.fromJson(user);
     }
-    final prefs = await SharedPreferences.getInstance();
+
+    if (_user != null && previousUserId != null && previousUserId != _user!.id) {
+      await prefs.remove(StorageConstants.profileImageKey);
+    }
+
     await prefs.setString(StorageConstants.userKey, jsonEncode(_user!.toJson()));
     notifyListeners();
   }
@@ -70,6 +77,7 @@ class AuthProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(StorageConstants.tokenKey);
     await prefs.remove(StorageConstants.userKey);
+    await prefs.remove(StorageConstants.profileImageKey);
     notifyListeners();
 
     if (token != null && token.isNotEmpty) {

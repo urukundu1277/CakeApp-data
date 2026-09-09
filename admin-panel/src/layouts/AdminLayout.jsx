@@ -10,7 +10,10 @@ const AdminLayout = () => {
     { name: 'Products', href: '/products', icon: '🎂' },
     { name: 'Categories', href: '/categories', icon: '📁' },
     { name: 'Orders', href: '/orders', icon: '📦' },
+    { name: 'Notifications', href: '/notifications', icon: '🔔' },
     { name: 'Customers', href: '/customers', icon: '👥' },
+    { name: 'Sliders', href: '/sliders', icon: '🖼️' },
+    { name: 'Banners', href: '/announcements', icon: '📢' },
   ];
 
   const isActive = (path) => {
@@ -24,7 +27,7 @@ const AdminLayout = () => {
         {/* Sidebar */}
         <div className="w-64 bg-gray-900 text-white min-h-screen">
           <div className="p-4">
-            <h1 className="text-2xl font-bold">Cake Sale Admin</h1>
+            <h1 className="text-2xl font-bold">OrderCake Admin</h1>
           </div>
           <nav className="mt-4">
             {navigation.map((item) => (

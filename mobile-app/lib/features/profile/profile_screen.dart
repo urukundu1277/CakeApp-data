@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cake_sale_app/core/theme/app_theme.dart';
 import 'package:cake_sale_app/core/utils/app_notification.dart';
+import 'package:cake_sale_app/core/constants/storage_constants.dart';
 import 'package:cake_sale_app/models/address_model.dart';
 import 'package:cake_sale_app/models/user_model.dart';
 import 'package:cake_sale_app/services/address_service.dart';
@@ -21,11 +23,14 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late Future<List<AddressModel>> _addressesFuture;
   File? _profileImage;
+  bool _hasUnsavedImage = false;
+  bool _isSaving = false;
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
+    _loadProfileImage();
     _loadAddresses();
   }
 
@@ -33,6 +38,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _loadAddresses();
+  }
+
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final imagePath = prefs.getString(StorageConstants.profileImageKey);
+    if (imagePath != null && await File(imagePath).exists()) {
+      setState(() {
+        _profileImage = File(imagePath);
+        _hasUnsavedImage = false;
+      });
+    }
+  }
+
+  Future<void> _saveProfileImage() async {
+    if (_profileImage == null) return;
+    setState(() => _isSaving = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(StorageConstants.profileImageKey, _profileImage!.path);
+      setState(() => _hasUnsavedImage = false);
+      if (mounted) {
+        AppNotification.showSuccess(context, 'Profile image saved successfully');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppNotification.showError(context, 'Failed to save image: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   void _loadAddresses() {
@@ -56,10 +93,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (image != null) {
         setState(() {
           _profileImage = File(image.path);
+          _hasUnsavedImage = true;
         });
-        if (mounted) {
-          AppNotification.showSuccess(context, 'Profile image updated');
-        }
       }
     } catch (e) {
       if (mounted) {
@@ -116,28 +151,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
           builder: (context, authProvider, _) {
             final user = authProvider.user;
 
-            if (user == null) {
+            if (authProvider.isLoading) {
               return const Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               );
             }
 
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                const SizedBox(height: 16),
-                _buildProfileHeader(user),
-                const SizedBox(height: 24),
-                _buildUserDetails(user),
-                const SizedBox(height: 24),
-                _buildAddressesSection(),
-                const SizedBox(height: 24),
-                _buildLogoutButton(),
-                const SizedBox(height: 24),
-              ],
-            );
+            if (user == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.pushReplacementNamed(context, '/login');
+              });
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
+
+            return _buildProfileContent(context, authProvider, user);
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileContent(BuildContext context, AuthProvider authProvider, UserModel user) {
+    final token = authProvider.token;
+    if (token != null && token.isNotEmpty) {
+      _addressesFuture = AddressService().getAddresses(token);
+    }
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const SizedBox(height: 16),
+        _buildProfileHeader(user),
+        if (_hasUnsavedImage) ...[
+          const SizedBox(height: 12),
+          _buildSaveImageButton(),
+        ],
+        const SizedBox(height: 24),
+        _buildUserDetails(user),
+        const SizedBox(height: 24),
+        _buildAddressesSection(),
+        const SizedBox(height: 24),
+        _buildLogoutButton(),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildSaveImageButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary, width: 2),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.image_outlined, color: AppColors.primary),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'You have an unsaved profile image',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton(
+            onPressed: _isSaving ? null : _saveProfileImage,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            child: _isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text('Save'),
+          ),
+        ],
       ),
     );
   }
@@ -257,7 +355,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 12),
           _buildDetailRow('Name', user.name),
           _buildDetailRow('Mobile', user.mobile),
-          _buildDetailRow('Email', user.email),
         ],
       ),
     );

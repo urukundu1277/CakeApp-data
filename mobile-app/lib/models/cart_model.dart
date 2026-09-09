@@ -6,6 +6,7 @@ class CartItemModel {
   final String name;
   final String image;
   final String size;
+  final String flavor;
   final int quantity;
   final double price;
   final double total;
@@ -16,10 +17,35 @@ class CartItemModel {
     required this.name,
     required this.image,
     required this.size,
+    required this.flavor,
     required this.quantity,
     required this.price,
     required this.total,
   });
+
+  CartItemModel copyWith({
+    String? id,
+    String? productId,
+    String? name,
+    String? image,
+    String? size,
+    String? flavor,
+    int? quantity,
+    double? price,
+    double? total,
+  }) {
+    return CartItemModel(
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      name: name ?? this.name,
+      image: image ?? this.image,
+      size: size ?? this.size,
+      flavor: flavor ?? this.flavor,
+      quantity: quantity ?? this.quantity,
+      price: price ?? this.price,
+      total: total ?? this.total,
+    );
+  }
 
   static String _resolveImageUrl(String path) {
     if (path.isEmpty) return '';
@@ -47,6 +73,7 @@ class CartItemModel {
       name: _extractProductName(json),
       image: _resolveImageUrl(_extractProductImage(json)),
       size: parseString(json['size']),
+      flavor: parseString(json['flavor']),
       quantity: quantityValue,
       price: priceValue,
       total: priceValue * quantityValue,

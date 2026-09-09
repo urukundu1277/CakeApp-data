@@ -8,7 +8,10 @@ import Dashboard from '../pages/Dashboard';
 import Products from '../pages/Products';
 import Categories from '../pages/Categories';
 import Orders from '../pages/Orders';
+import Notifications from '../pages/Notifications';
 import Customers from '../pages/Customers';
+import Announcements from '../pages/Announcements';
+import Sliders from '../pages/Sliders';
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -36,7 +39,10 @@ const AppRoutes = () => {
         <Route path="products" element={<Products />} />
         <Route path="categories" element={<Categories />} />
         <Route path="orders" element={<Orders />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="customers" element={<Customers />} />
+        <Route path="announcements" element={<Announcements />} />
+        <Route path="sliders" element={<Sliders />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

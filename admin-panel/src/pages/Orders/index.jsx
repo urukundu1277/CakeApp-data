@@ -114,13 +114,19 @@ const Orders = () => {
                 Customer
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Items
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Amount
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Date
+                Ordered Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Delivery Date
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Actions
@@ -134,7 +140,32 @@ const Orders = () => {
                   {order.orderNumber}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {order.user?.name || 'N/A'}
+                  <div>
+                    <div className="font-medium">{order.user?.name || 'N/A'}</div>
+                    <div className="text-sm text-gray-500">{order.user?.mobile || ''}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="space-y-2">
+                    {order.items?.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        {item.image && (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-10 h-10 object-cover rounded"
+                          />
+                        )}
+                        <div>
+                          <div className="text-sm font-medium">{item.name}</div>
+                          <div className="text-xs text-gray-500">
+                            Qty: {item.quantity} | Size: {item.size || 'N/A'}
+                            {item.flavor && ` | Flavor: ${item.flavor}`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">₹{order.totalAmount}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -146,6 +177,9 @@ const Orders = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {new Date(order.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {new Date(order.deliveryDate).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap space-x-2">
                   <button
@@ -228,13 +262,28 @@ const Orders = () => {
               )}
               <div>
                 <strong>Items:</strong>
-                <ul className="list-disc list-inside mt-2">
+                <div className="mt-2 space-y-3">
                   {selectedOrder.items?.map((item, index) => (
-                    <li key={index}>
-                      {item.name} - Qty: {item.quantity} - ₹{item.total}
-                    </li>
+                    <div key={index} className="flex items-start gap-3 border rounded-lg p-3">
+                      {item.image && (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          <div>Quantity: {item.quantity}</div>
+                          <div>Size: {item.size || 'N/A'}</div>
+                          {item.flavor && <div>Flavor: {item.flavor}</div>}
+                          <div>Price: ₹{item.price} | Total: ₹{item.total}</div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
               {canCancelOrder(selectedOrder) && (
                 <div className="pt-4 border-t">

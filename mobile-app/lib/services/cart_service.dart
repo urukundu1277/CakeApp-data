@@ -27,12 +27,16 @@ class CartService {
     required String productId,
     int quantity = 1,
     String? size,
+    String? flavor,
+    double? price,
   }) async {
     final headers = await ApiInterceptor.getHeaders(token: token);
     final body = jsonEncode({
       'productId': productId,
       'quantity': quantity,
       if (size != null) 'size': size,
+      if (flavor != null) 'flavor': flavor,
+      if (price != null) 'price': price,
     });
 
     final response = await http.post(

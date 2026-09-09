@@ -4,10 +4,13 @@ import '../core/constants/api_constants.dart';
 import '../models/product_model.dart';
 
 class ProductService {
-  Future<List<ProductModel>> getProducts({int page = 1, int limit = 20, String category = '', String searchQuery = ''}) async {
+  Future<List<ProductModel>> getProducts({int page = 1, int limit = 20, String category = '', String categoryId = '', String searchQuery = ''}) async {
     final queryParams = <String, String>{'page': page.toString(), 'limit': limit.toString()};
     if (category.isNotEmpty) {
       queryParams['category'] = category;
+    }
+    if (categoryId.isNotEmpty) {
+      queryParams['categoryId'] = categoryId;
     }
     if (searchQuery.isNotEmpty) {
       queryParams['search'] = searchQuery;

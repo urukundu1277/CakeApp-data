@@ -104,6 +104,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
+    if (widget.cart == null || widget.cart!.items.isEmpty) {
+      _showError('Your cart is empty');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -117,7 +122,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             : _cakeMessageController.text,
       );
 
-      await _cartService.clearCart(token);
+      try {
+        await _cartService.clearCart(token);
+      } catch (e) {
+        // Cart clear can fail but order is already placed
+      }
 
       if (mounted) {
         AppNotification.showSuccess(context, 'Order placed successfully!');
@@ -129,10 +138,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     } catch (e) {
       final errorMessage = e.toString().replaceAll('Exception: ', '');
-      if (errorMessage.contains('Address not found')) {
-        if (mounted) AppNotification.showError(context, 'Delivery address not found. Please add a new address.');
-      } else {
-        if (mounted) AppNotification.showError(context, errorMessage);
+      if (mounted) {
+        if (errorMessage.toLowerCase().contains('address')) {
+          AppNotification.showError(context, 'Delivery address not found. Please add a new address.');
+        } else if (errorMessage.toLowerCase().contains('cart')) {
+          AppNotification.showError(context, 'Your cart is empty. Please add items to cart.');
+        } else if (errorMessage.toLowerCase().contains('not authorized') ||
+            errorMessage.toLowerCase().contains('token')) {
+          AppNotification.showError(context, 'Session expired. Please login again.');
+        } else {
+          AppNotification.showError(context, errorMessage);
+        }
       }
     } finally {
       if (mounted) {

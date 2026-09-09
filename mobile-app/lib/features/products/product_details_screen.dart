@@ -25,9 +25,10 @@ class ProductDetailsScreen extends StatefulWidget {
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int _quantity = 1;
-  String _selectedSize = '1kg';
+  String _selectedSize = '';
+  String? _selectedFlavor;
   late Future<ProductModel> _productFuture;
-  final List<String> _sizes = ['0.5kg', '1kg', '1.5kg', '2kg', '2.5kg', '3kg', '5kg'];
+  static const List<String> _allSizes = ['0.5kg', '1kg', '1.5kg', '2kg', '2.5kg', '3kg', '5kg'];
 
   @override
   void initState() {
@@ -68,6 +69,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             }
 
             final product = snapshot.data!;
+            if (_selectedSize.isEmpty) {
+              _selectedSize = product.sizes.isNotEmpty ? product.sizes.first : '1kg';
+            }
 
             return Column(
               children: [
@@ -77,14 +81,18 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildProductImage(product),
-                        const SizedBox(height: 16),
-                        _buildProductInfo(product),
-                        const SizedBox(height: 24),
-                        _buildSizeSelector(),
-                        const SizedBox(height: 24),
-                        _buildDescription(product),
-                        const SizedBox(height: 100),
+                         _buildProductImage(product),
+                         const SizedBox(height: 16),
+                         _buildProductInfo(product),
+                         const SizedBox(height: 24),
+                         if (product.requiresFlavorSelection && product.flavors.isNotEmpty) ...[
+                           _buildFlavorSelector(product.flavors),
+                           const SizedBox(height: 24),
+                         ],
+                          _buildSizeSelector(product),
+                         const SizedBox(height: 24),
+                         _buildDescription(product),
+                         const SizedBox(height: 100),
                       ],
                     ),
                   ),
@@ -132,6 +140,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Widget _buildProductInfo(ProductModel product) {
+    final currentPrice = product.getPriceForSize(_selectedSize);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -146,13 +155,24 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         Row(
           children: [
             Text(
-              '₹${Formatters.formatCurrency(product.basePrice)}',
+              Formatters.formatCurrency(currentPrice),
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
               ),
             ),
+            if (_selectedSize.isNotEmpty && _selectedSize != '1kg' && product.basePrice != currentPrice) ...[
+              const SizedBox(width: 8),
+              Text(
+                Formatters.formatCurrency(product.basePrice),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  decoration: TextDecoration.lineThrough,
+                ),
+              ),
+            ],
             if (product.discountPrice != null) ...[
               const SizedBox(width: 12),
               Container(
@@ -162,7 +182,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '${((1 - product.discountPrice! / product.basePrice) * 100).toInt()}% OFF',
+                  '${((1 - (product.discountPrice ?? product.basePrice) / currentPrice) * 100).toInt()}% OFF',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -191,12 +211,56 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Widget _buildSizeSelector() {
+  Widget _buildSizeSelector(ProductModel product) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Size',
+          'Select Size',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: _allSizes.map((size) {
+            final isSelected = _selectedSize == size;
+            final sizePrice = product.getPriceForSize(size);
+            return GestureDetector(
+              onTap: () => setState(() => _selectedSize = size),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected ? AppColors.primary : Colors.grey[300]!,
+                  ),
+                ),
+                  child: Text(
+                    '$size - ${Formatters.formatCurrency(sizePrice)}',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.onSurface,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFlavorSelector(List<String> flavors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Flavor',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -204,23 +268,23 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         ),
         const SizedBox(height: 8),
         Row(
-          children: _sizes.map((size) {
-            final isSelected = _selectedSize == size;
+          children: flavors.map((flavor) {
+            final isSelected = _selectedFlavor == flavor;
             return Expanded(
               child: GestureDetector(
-                onTap: () => setState(() => _selectedSize = size),
+                onTap: () => setState(() => _selectedFlavor = flavor),
                 child: Container(
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : Colors.white,
+                    color: isSelected ? AppColors.secondary : Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isSelected ? AppColors.primary : Colors.grey[300]!,
+                      color: isSelected ? AppColors.secondary : Colors.grey[300]!,
                     ),
                   ),
                   child: Text(
-                    size,
+                    flavor,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: isSelected ? Colors.white : AppColors.onSurface,
@@ -311,6 +375,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             Expanded(
               child: ElevatedButton(
                 onPressed: () async {
+                  if (product.requiresFlavorSelection && _selectedFlavor == null) {
+                    if (mounted) {
+                      AppNotification.showWarning(context, 'Please select a flavor');
+                    }
+                    return;
+                  }
+
                   final authProvider = Provider.of<AuthProvider>(context, listen: false);
                   final token = authProvider.token;
 
@@ -321,14 +392,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     return;
                   }
 
-                    try {
-                      final cartService = CartService();
-                      await cartService.addToCart(
-                        token: token,
-                        productId: widget.productId,
-                        quantity: _quantity,
-                        size: _selectedSize,
-                      );
+                  try {
+                    final cartService = CartService();
+                    final sizePrice = product.getPriceForSize(_selectedSize);
+                    await cartService.addToCart(
+                      token: token,
+                      productId: widget.productId,
+                      quantity: _quantity,
+                      size: _selectedSize,
+                      flavor: _selectedFlavor,
+                      price: sizePrice,
+                    );
 
                     if (mounted) {
                       AppNotification.showSuccess(context, '$_quantity x ${widget.productName} added to cart');

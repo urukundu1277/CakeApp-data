@@ -62,6 +62,24 @@ const mobileLogin = async (req, res) => {
   }
 };
 
+const firebaseLogin = async (req, res) => {
+  try {
+    const { name, mobile, firebaseToken } = req.body;
+
+    const result = await authService.firebaseLogin({ name, mobile, firebaseToken });
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: result,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Login failed',
+    });
+  }
+};
+
 const getMe = async (req, res) => {
   try {
     const user = await authService.getMe(req.user._id);
@@ -104,6 +122,7 @@ module.exports = {
   register,
   login,
   mobileLogin,
+  firebaseLogin,
   getMe,
   forgotPassword,
   logout,

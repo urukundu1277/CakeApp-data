@@ -25,6 +25,21 @@ const productSchema = new mongoose.Schema({
     type: String,
     trim: true,
   }],
+  sizePrices: [{
+    size: {
+      type: String,
+      trim: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: [0, 'Price cannot be negative'],
+    },
+  }],
+  flavors: [{
+    type: String,
+    trim: true,
+  }],
   basePrice: {
     type: Number,
     required: [true, 'Base price is required'],

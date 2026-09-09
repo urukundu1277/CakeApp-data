@@ -85,6 +85,30 @@ class AuthService {
     throw Exception(data['message'] ?? 'Mobile login failed');
   }
 
+  Future<Map<String, dynamic>> firebaseLogin({
+    required String name,
+    required String mobile,
+    required String firebaseToken,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.baseUrl}/auth/firebase/login'),
+      headers: ApiConstants.headers,
+      body: jsonEncode({
+        'name': name,
+        'mobile': mobile,
+        'firebaseToken': firebaseToken,
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && data['success']) {
+      return data['data'];
+    }
+
+    throw Exception(data['message'] ?? 'Login failed');
+  }
+
   Future<Map<String, dynamic>> getMe(String token) async {
     final response = await http.get(
       Uri.parse('${ApiConstants.baseUrl}/auth/me'),

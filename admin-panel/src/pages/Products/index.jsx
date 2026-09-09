@@ -35,11 +35,7 @@ const Products = () => {
       const response = await productService.getAll();
       const productsData = Array.isArray(response.products) ? response.products : [];
       setProducts(productsData);
-      if (productsData.length === 0) {
-        setError('No products found. Add a product to get started.');
-      } else {
-        setError('');
-      }
+      setError('');
     } catch (error) {
       console.error('Failed to fetch products:', error);
       setError(error.response?.data?.message || 'Failed to fetch products');
@@ -181,22 +177,6 @@ const Products = () => {
     return <div className="text-center py-8">Loading products...</div>;
   }
 
-  if (error) {
-    return (
-      <div>
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-        <button
-          onClick={fetchProducts}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -211,6 +191,12 @@ const Products = () => {
           Add Product
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -398,57 +384,78 @@ const Products = () => {
       )}
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Price
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {products.map((product) => (
-              <tr key={product._id}>
-                <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">₹{product.basePrice}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 text-xs rounded ${
-                      product.isAvailable
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {product.isAvailable ? 'Available' : 'Unavailable'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleEdit(product)}
-                    className="text-blue-600 hover:text-blue-900 mr-2"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product._id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
-                  </button>
-                </td>
+        {products.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <div className="text-gray-400 mb-4">
+              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No products yet</h3>
+            <p className="text-gray-500 mb-4">Get started by adding your first product.</p>
+            <button
+              onClick={() => {
+                setShowForm(true);
+                setEditingProduct(null);
+              }}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Add Product
+            </button>
+          </div>
+        ) : (
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Price
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {products.map((product) => (
+                <tr key={product._id}>
+                  <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">₹{product.basePrice}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 text-xs rounded ${
+                        product.isAvailable
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {product.isAvailable ? 'Available' : 'Unavailable'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => handleEdit(product)}
+                      className="text-blue-600 hover:text-blue-900 mr-2"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(product._id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ const Category = require('../models/Category');
 const getAllProducts = async (filters = {}) => {
   const {
     category,
+    categoryId,
     featured,
     available,
     search,
@@ -13,7 +14,9 @@ const getAllProducts = async (filters = {}) => {
 
   const query = {};
 
-  if (category && category !== 'all') {
+  if (categoryId) {
+    query.categories = categoryId;
+  } else if (category && category !== 'all') {
     const categoryDoc = await Category.findOne({ name: { $regex: new RegExp(category, 'i') } });
     if (categoryDoc) {
       query.categories = categoryDoc._id;

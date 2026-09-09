@@ -56,7 +56,7 @@ class CakeSaleApp extends StatelessWidget {
           border: Border.all(color: Colors.grey.shade300, width: 0.5),
         ),
         child: MaterialApp(
-        title: 'Cake Sale',
+        title: 'OrderCake',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         initialRoute: AppRoutes.splash,

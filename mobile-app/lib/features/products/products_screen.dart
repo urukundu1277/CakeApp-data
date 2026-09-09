@@ -31,10 +31,31 @@ class _ProductsScreenState extends State<ProductsScreen> {
     _loadProducts();
   }
 
+  @override
+  void didUpdateWidget(ProductsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.category != oldWidget.category || widget.categoryId != oldWidget.categoryId) {
+      _loadProducts();
+    }
+  }
+
   void _loadProducts() {
     setState(() {
-      _productsFuture = ProductService().getProducts(category: widget.category ?? '');
+      _productsFuture = ProductService().getProducts(
+        category: widget.category ?? '',
+        categoryId: widget.categoryId ?? '',
+      );
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args['categoryId'] != null && widget.categoryId != args['categoryId']) {
+      // Reload products if categoryId changes
+      _loadProducts();
+    }
   }
 
   @override

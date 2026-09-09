@@ -4,6 +4,8 @@ const Cart = require('../models/Cart');
 const Address = require('../models/Address');
 const { protect } = require('../middleware/auth.middleware');
 const { validationResult } = require('express-validator');
+const { sendPushNotification } = require('../services/notification.service');
+const User = require('../models/User');
 
 const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
@@ -59,6 +61,7 @@ const createOrder = async (req, res) => {
         name: item.product.name,
         image: item.product.images[0] || '',
         size: item.size,
+        flavor: item.flavor || '',
         quantity: item.quantity,
         price: item.price,
         total: item.price * item.quantity,
@@ -89,6 +92,17 @@ const createOrder = async (req, res) => {
     cart.items = [];
     cart.totalAmount = 0;
     await cart.save();
+
+    const admins = await User.find({ role: 'ADMIN' }).select('_id');
+    for (const admin of admins) {
+      await sendPushNotification(
+        admin._id,
+        'New Order Received',
+        `Order #${order.orderNumber} has been placed by ${req.user.name}`,
+        'ORDER',
+        { orderId: order._id, orderNumber: order.orderNumber }
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -158,6 +172,17 @@ const cancelOrder = async (req, res) => {
       cancellationReason,
       cancelledBy: 'CUSTOMER',
     });
+
+    const admins = await User.find({ role: 'ADMIN' }).select('_id');
+    for (const admin of admins) {
+      await sendPushNotification(
+        admin._id,
+        'Order Cancelled',
+        `Order #${order.orderNumber} has been cancelled by customer`,
+        'ORDER',
+        { orderId: order._id, orderNumber: order.orderNumber }
+      );
+    }
 
     res.status(200).json({
       success: true,

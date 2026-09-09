@@ -98,6 +98,48 @@ const mobileLogin = async (mobile, name) => {
     await user.save();
   }
 
+  user.isActive = true;
+  await user.save();
+
+  const token = generateToken(user._id);
+
+  return {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+      role: user.role,
+      isActive: user.isActive,
+    },
+    token,
+  };
+};
+
+const firebaseLogin = async ({ name, mobile, firebaseToken }) => {
+  if (!firebaseToken) {
+    const error = new Error('Firebase token is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  let user = await User.findOne({ mobile });
+
+  if (!user) {
+    user = await User.create({
+      name: name || 'User',
+      email: `${mobile}@temp.com`,
+      mobile,
+      password: Math.random().toString(36),
+      role: 'CUSTOMER',
+    });
+  } else if (name && (user.name === 'User' || !user.name)) {
+    user.name = name;
+  }
+
+  user.isActive = true;
+  await user.save();
+
   const token = generateToken(user._id);
 
   return {
@@ -142,6 +184,7 @@ module.exports = {
   register,
   login,
   mobileLogin,
+  firebaseLogin,
   getMe,
   updateUser,
 };

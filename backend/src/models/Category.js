@@ -24,6 +24,20 @@ const categorySchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  isFlavorCategory: {
+    type: Boolean,
+    default: false,
+    description: 'If true, this category IS a flavor (e.g., Chocolate, Vanilla)',
+  },
+  requiresFlavorSelection: {
+    type: Boolean,
+    default: false,
+    description: 'If true, products in this category require explicit flavor selection',
+  },
+  availableFlavors: [{
+    type: String,
+    trim: true,
+  }],
 }, {
   timestamps: true,
 });

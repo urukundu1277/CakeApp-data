@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:cake_sale_app/core/theme/app_theme.dart';
 import 'package:cake_sale_app/core/utils/validators.dart';
 import 'package:cake_sale_app/services/auth_service.dart';
+import 'package:cake_sale_app/models/user_model.dart';
 import 'package:cake_sale_app/providers/auth_provider.dart';
 
 class EmailLoginScreen extends StatefulWidget {
@@ -39,9 +40,13 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
         );
 
         final token = result['token'];
+        final userData = result['user'];
         if (token != null && mounted) {
           final authProvider = Provider.of<AuthProvider>(context, listen: false);
           await authProvider.setToken(token);
+          if (userData != null) {
+            await authProvider.setUser(UserModel.fromJson(userData));
+          }
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

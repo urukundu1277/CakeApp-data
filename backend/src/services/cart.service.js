@@ -9,7 +9,7 @@ const getCart = async (userId) => {
   return cart;
 };
 
-const addToCart = async (userId, productId, quantity = 1, size) => {
+const addToCart = async (userId, productId, quantity = 1, size, flavor, price) => {
   const product = await Product.findById(productId);
   if (!product || !product.isAvailable) {
     const error = new Error('Product not found or unavailable');
@@ -22,18 +22,24 @@ const addToCart = async (userId, productId, quantity = 1, size) => {
     cart = await Cart.create({ user: userId, items: [], totalAmount: 0 });
   }
 
+  const itemPrice = price || product.basePrice;
+
   const existingItemIndex = cart.items.findIndex(
-    (item) => item.product.toString() === productId && item.size === size
+    (item) => item.product.toString() === productId && item.size === size && item.flavor === flavor
   );
 
   if (existingItemIndex > -1) {
     cart.items[existingItemIndex].quantity += quantity;
+    if (price && price > 0) {
+      cart.items[existingItemIndex].price = price;
+    }
   } else {
     cart.items.push({
       product: productId,
       quantity,
       size,
-      price: product.basePrice,
+      flavor,
+      price: itemPrice,
     });
   }
 

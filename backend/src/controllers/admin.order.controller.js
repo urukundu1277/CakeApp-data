@@ -2,6 +2,8 @@ const { param, body } = require('express-validator');
 const adminOrderService = require('../services/admin.order.service');
 const { authorize } = require('../middleware/auth.middleware');
 const { validationResult } = require('express-validator');
+const { sendPushNotification } = require('../services/notification.service');
+const User = require('../models/User');
 
 const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
@@ -79,6 +81,18 @@ const updateOrderStatus = async (req, res) => {
         message: 'Order not found',
       });
     }
+
+    const admins = await User.find({ role: 'ADMIN' }).select('_id');
+    for (const admin of admins) {
+      await sendPushNotification(
+        admin._id,
+        'Order Status Updated',
+        `Order #${order.orderNumber} status changed to ${orderStatus}`,
+        'ORDER',
+        { orderId: order._id, orderNumber: order.orderNumber, orderStatus }
+      );
+    }
+
     res.status(200).json({
       success: true,
       message: 'Order status updated successfully',
@@ -102,6 +116,18 @@ const cancelOrder = async (req, res) => {
         message: 'Order not found',
       });
     }
+
+    const admins = await User.find({ role: 'ADMIN' }).select('_id');
+    for (const admin of admins) {
+      await sendPushNotification(
+        admin._id,
+        'Order Cancelled by Admin',
+        `Order #${order.orderNumber} has been cancelled by admin`,
+        'ORDER',
+        { orderId: order._id, orderNumber: order.orderNumber }
+      );
+    }
+
     res.status(200).json({
       success: true,
       message: 'Order cancelled successfully',

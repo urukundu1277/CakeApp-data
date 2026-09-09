@@ -26,14 +26,22 @@ class OrderService {
       body: body,
     );
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 201 || response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      if (data['success']) {
+      if (data['success'] == true) {
         return OrderModel.fromJson(data['data']);
       }
-      throw Exception(data['message']);
+      throw Exception(data['message'] ?? 'Order creation failed');
     }
-    throw Exception('Failed to create order');
+
+    String errorMessage = 'Failed to create order';
+    try {
+      final data = jsonDecode(response.body);
+      errorMessage = data['message'] ?? errorMessage;
+    } catch (e) {
+      errorMessage = 'Failed to create order (${response.statusCode})';
+    }
+    throw Exception(errorMessage);
   }
 
   Future<List<OrderModel>> getMyOrders(String token, {int page = 1, int limit = 10}) async {

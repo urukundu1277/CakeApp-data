@@ -17,6 +17,7 @@ const paymentRoutes = require('./routes/payment.routes');
 const adminOrderRoutes = require('./routes/admin.order.routes');
 const userRoutes = require('./routes/user.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const announcementRoutes = require('./routes/announcement.routes');
 
 const app = express();
 
@@ -79,6 +80,7 @@ app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/admin/orders', adminOrderRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/announcements', announcementRoutes);
 
 // API root
 app.get('/api/v1', (req, res) => {

@@ -5,6 +5,7 @@ const getProducts = async (req, res) => {
   try {
     const filters = {
       category: req.query.category,
+      categoryId: req.query.categoryId,
       featured: req.query.featured === 'true' ? true : req.query.featured === 'false' ? false : undefined,
       available: req.query.available === 'true' ? true : req.query.available === 'false' ? false : undefined,
       search: req.query.search,
@@ -115,6 +116,16 @@ const parseProductBody = (req, res, next) => {
       } catch {
         if (typeof body.sizes === 'string') {
           body.sizes = body.sizes.split(',').map(s => s.trim()).filter(s => s);
+        }
+      }
+    }
+
+    if (body.sizePrices) {
+      try {
+        body.sizePrices = JSON.parse(body.sizePrices);
+      } catch {
+        if (typeof body.sizePrices === 'string') {
+          body.sizePrices = JSON.parse(body.sizePrices);
         }
       }
     }

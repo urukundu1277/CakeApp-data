@@ -1,44 +1,19 @@
 import { useState, useEffect } from 'react';
 import { categoryService } from '../../services/categoryService';
 
-const FIXED_CATEGORIES = [
-  {
-    name: 'All Cakes',
-    description: 'Browse all available cakes',
-    image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400',
-    sortOrder: 0,
-  },
-  {
-    name: 'Birthday',
-    description: 'Delicious birthday cakes for all ages',
-    image: 'https://images.unsplash.com/photo-1558301211-0d8c8ddee7ec?w=400',
-    sortOrder: 1,
-  },
-  {
-    name: 'Anniversary',
-    description: 'Romantic anniversary cakes for your special day',
-    image: 'https://images.unsplash.com/photo-1565958011706-d4f11b770b82?w=400',
-    sortOrder: 2,
-  },
-  {
-    name: 'Party Cakes',
-    description: 'Fun and colorful party cakes for celebrations',
-    image: 'https://images.unsplash.com/photo-1535254973040-6079c0c9a3e9?w=400',
-    sortOrder: 3,
-  },
-];
-
 const Categories = () => {
-  const [categories, setCategories] = useState(FIXED_CATEGORIES);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
     image: '',
     sortOrder: 0,
+    isActive: true,
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
 
   useEffect(() => {
     fetchCategories();
@@ -48,7 +23,7 @@ const Categories = () => {
     try {
       const response = await categoryService.getAll();
       const categoriesData = Array.isArray(response.data) ? response.data : [];
-      setCategories(categoriesData);
+      setCategories(categoriesData.sort((a, b) => a.sortOrder - b.sortOrder));
     } catch (error) {
       console.error('Failed to fetch categories:', error);
     } finally {
@@ -56,16 +31,39 @@ const Categories = () => {
     }
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('sortOrder', formData.sortOrder);
+      formDataToSend.append('isActive', formData.isActive);
+      if (imageFile) {
+        formDataToSend.append('image', imageFile);
+      }
+
       if (editingCategory) {
-        await categoryService.update(editingCategory._id, formData);
+        await categoryService.update(editingCategory._id, formDataToSend);
+      } else {
+        await categoryService.create(formDataToSend);
       }
       fetchCategories();
-      setEditingCategory(null);
+      resetForm();
     } catch (error) {
       console.error('Failed to save category:', error);
+      alert(error.response?.data?.message || 'Failed to save category');
     }
   };
 
@@ -73,10 +71,110 @@ const Categories = () => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
-      description: category.description || '',
       image: category.image || '',
       sortOrder: category.sortOrder || 0,
+      isActive: category.isActive ?? true,
     });
+    setImagePreview(category.image || '');
+    setImageFile(null);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      try {
+        await categoryService.delete(id);
+        fetchCategories();
+      } catch (error) {
+        console.error('Failed to delete category:', error);
+        alert(error.response?.data?.message || 'Failed to delete category');
+      }
+    }
+  };
+
+  const handleToggleActive = async (category) => {
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', category.name);
+      formDataToSend.append('sortOrder', category.sortOrder);
+      formDataToSend.append('isActive', !category.isActive);
+      if (category.image) {
+        formDataToSend.append('image', category.image);
+      }
+      await categoryService.update(category._id, formDataToSend);
+      fetchCategories();
+    } catch (error) {
+      console.error('Failed to toggle category:', error);
+      alert(error.response?.data?.message || 'Failed to toggle category');
+    }
+  };
+
+  const handleMoveUp = async (index) => {
+    if (index === 0) return;
+    const newCategories = [...categories];
+    const temp = newCategories[index];
+    newCategories[index] = newCategories[index - 1];
+    newCategories[index - 1] = temp;
+
+    const updatedCategories = newCategories.map((cat, idx) => ({
+      ...cat,
+      sortOrder: idx + 1,
+    }));
+
+    try {
+      for (const category of updatedCategories) {
+        const formDataToSend = new FormData();
+        formDataToSend.append('name', category.name);
+        formDataToSend.append('sortOrder', category.sortOrder);
+        formDataToSend.append('isActive', category.isActive);
+        if (category.image) {
+          formDataToSend.append('image', category.image);
+        }
+        await categoryService.update(category._id, formDataToSend);
+      }
+      fetchCategories();
+    } catch (error) {
+      console.error('Failed to reorder categories:', error);
+      alert(error.response?.data?.message || 'Failed to reorder categories');
+    }
+  };
+
+  const handleMoveDown = async (index) => {
+    if (index === categories.length - 1) return;
+    const newCategories = [...categories];
+    const temp = newCategories[index];
+    newCategories[index] = newCategories[index + 1];
+    newCategories[index + 1] = temp;
+
+    const updatedCategories = newCategories.map((cat, idx) => ({
+      ...cat,
+      sortOrder: idx + 1,
+    }));
+
+    try {
+      for (const category of updatedCategories) {
+        const formDataToSend = new FormData();
+        formDataToSend.append('name', category.name);
+        formDataToSend.append('sortOrder', category.sortOrder);
+        formDataToSend.append('isActive', category.isActive);
+        if (category.image) {
+          formDataToSend.append('image', category.image);
+        }
+        await categoryService.update(category._id, formDataToSend);
+      }
+      fetchCategories();
+    } catch (error) {
+      console.error('Failed to reorder categories:', error);
+      alert(error.response?.data?.message || 'Failed to reorder categories');
+    }
+  };
+
+  const resetForm = () => {
+    setShowForm(false);
+    setEditingCategory(null);
+    setFormData({ name: '', image: '', sortOrder: 0, isActive: true });
+    setImageFile(null);
+    setImagePreview('');
   };
 
   if (loading) {
@@ -87,15 +185,26 @@ const Categories = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Categories</h2>
+        <button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Add Category
+        </button>
       </div>
 
-      {editingCategory && (
+      {showForm && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h3 className="text-lg font-bold mb-4">Edit Category</h3>
+          <h3 className="text-lg font-bold mb-4">
+            {editingCategory ? 'Edit Category' : 'Add Category'}
+          </h3>
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">
-                Name
+                Category Name
               </label>
               <input
                 type="text"
@@ -103,30 +212,41 @@ const Categories = () => {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
                 required
+                placeholder="e.g., Birthday Cakes"
               />
             </div>
+
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-                rows="3"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Image URL
+                Category Image
               </label>
               <input
-                type="text"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
               />
+              {imagePreview && (
+                <div className="mt-2">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                  />
+                </div>
+              )}
+              {!imagePreview && editingCategory?.image && (
+                <div className="mt-2">
+                  <img
+                    src={editingCategory.image}
+                    alt="Current"
+                    className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Current image</p>
+                </div>
+              )}
             </div>
+
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 Sort Order
@@ -134,20 +254,35 @@ const Categories = () => {
               <input
                 type="number"
                 value={formData.sortOrder}
-                onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
+                placeholder="0"
               />
+              <p className="text-gray-500 text-xs mt-1">Lower numbers appear first</p>
             </div>
+
+            <div className="mb-4">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">Active</span>
+              </label>
+            </div>
+
             <div className="flex gap-2">
               <button
                 type="submit"
                 className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               >
-                Update
+                {editingCategory ? 'Update' : 'Create'}
               </button>
               <button
                 type="button"
-                onClick={() => setEditingCategory(null)}
+                onClick={resetForm}
                 className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
               >
                 Cancel
@@ -162,16 +297,19 @@ const Categories = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Order
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Image
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Description
+                Sort Order
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Sort Order
+                Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Actions
@@ -179,28 +317,79 @@ const Categories = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {categories.map((category) => (
-              <tr key={category._id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-16 h-16 object-cover rounded-lg"
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap font-medium">{category.name}</td>
-                <td className="px-6 py-4">{category.description}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{category.sortOrder}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleEdit(category)}
-                    className="text-blue-600 hover:text-blue-900 mr-2"
-                  >
-                    Edit
-                  </button>
+            {categories.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                  No categories yet. Add your first category.
                 </td>
               </tr>
-            ))}
+            ) : (
+              categories.map((category, index) => (
+                <tr key={category._id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => handleMoveUp(index)}
+                        disabled={index === 0}
+                        className="text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move Up"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        onClick={() => handleMoveDown(index)}
+                        disabled={index === categories.length - 1}
+                        className="text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move Down"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {category.image ? (
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-16 h-16 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <span className="text-gray-400 text-xs">No image</span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium">{category.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{category.sortOrder}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => handleToggleActive(category)}
+                      className={`px-3 py-1 rounded text-sm ${
+                        category.isActive
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-red-100 text-red-800 hover:bg-red-200'
+                      }`}
+                    >
+                      {category.isActive ? 'Active' : 'Inactive'}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap space-x-2">
+                    <button
+                      onClick={() => handleEdit(category)}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(category._id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

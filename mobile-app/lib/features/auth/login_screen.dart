@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as app_provider;
 import 'package:cake_sale_app/core/theme/app_theme.dart';
 import 'package:cake_sale_app/core/utils/validators.dart';
 import 'package:cake_sale_app/core/utils/app_notification.dart';
@@ -19,90 +19,48 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _mobileController = TextEditingController();
-  final _otpController = TextEditingController();
   bool _isLoading = false;
-  bool _otpSent = false;
-  int _resendTimer = 0;
 
   @override
   void dispose() {
     _nameController.dispose();
     _mobileController.dispose();
-    _otpController.dispose();
     super.dispose();
   }
 
-  Future<void> _sendOtp() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        await Future.delayed(const Duration(milliseconds: 500));
+    setState(() => _isLoading = true);
 
-        setState(() {
-          _otpSent = true;
-          _resendTimer = 30;
-        });
+    try {
+      final authService = AuthService();
+      final result = await authService.mobileLogin(
+        name: _nameController.text.trim(),
+        mobile: _mobileController.text.trim(),
+      );
 
-        _startResendTimer();
-
-        if (mounted) {
-          AppNotification.showInfo(context, 'OTP sent! Use 123456 for demo');
+      final token = result['token'];
+      final userData = result['user'];
+      if (token != null && mounted) {
+        final authProvider = app_provider.Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.setToken(token);
+        if (userData != null) {
+          await authProvider.setUser(UserModel.fromJson(userData));
         }
-      } catch (e) {
+
         if (mounted) {
-          AppNotification.showError(context, 'Failed to send OTP: $e');
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
+          AppNotification.showSuccess(context, 'Login successful!');
+          Navigator.pushReplacementNamed(context, '/home');
         }
       }
-    }
-  }
-
-  void _startResendTimer() {
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted && _resendTimer > 0) {
-        setState(() => _resendTimer--);
-        _startResendTimer();
+    } catch (e) {
+      if (mounted) {
+        AppNotification.showError(context, e.toString().replaceAll('Exception: ', ''));
       }
-    });
-  }
-
-  Future<void> _verifyOtp() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-
-      try {
-        final authService = AuthService();
-        final result = await authService.mobileLogin(
-          name: _nameController.text.trim(),
-          mobile: _mobileController.text.trim(),
-        );
-
-        final token = result['token'];
-        final userData = result['user'];
-        if (token != null && mounted) {
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-          await authProvider.setToken(token);
-          if (userData != null) {
-            await authProvider.setUser(UserModel.fromJson(userData));
-          }
-
-          if (mounted) {
-            AppNotification.showSuccess(context, 'Login successful!');
-            Navigator.pushReplacementNamed(context, '/home');
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          AppNotification.showError(context, e.toString().replaceAll('Exception: ', ''));
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -122,145 +80,121 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 60),
-                    const Text(
-                      'Welcome',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom,
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Welcome',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _otpSent ? 'Enter OTP' : 'Enter your details',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Enter your details to continue',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white70,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 48),
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        children: [
-                          if (!_otpSent) ...[
-                            TextFormField(
-                              controller: _nameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Name',
-                                hintText: 'Enter your full name',
-                                prefixIcon: Icon(Icons.person_outline),
+                      const SizedBox(height: 32),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextFormField(
+                                controller: _nameController,
+                                decoration: const InputDecoration(
+                                  hintText: 'Enter your full name',
+                                  prefixIcon: Icon(Icons.person_outline),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().length < 2) {
+                                    return 'Please enter a valid name';
+                                  }
+                                  return null;
+                                },
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().length < 2) {
-                                  return 'Please enter a valid name';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _mobileController,
-                              keyboardType: TextInputType.phone,
-                              decoration: const InputDecoration(
-                                labelText: 'Mobile Number',
-                                hintText: 'Enter 10-digit mobile number',
-                                prefixIcon: Icon(Icons.phone_outlined),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _mobileController,
+                                keyboardType: TextInputType.phone,
+                                decoration: const InputDecoration(
+                                  hintText: 'Enter 10-digit mobile number',
+                                  prefixIcon: Icon(Icons.phone_outlined),
+                                  prefixText: '+91 ',
+                                ),
+                                maxLength: 10,
+                                validator: (value) {
+                                  if (!Validators.isValidMobile(value ?? '')) {
+                                    return 'Please enter a valid 10-digit mobile number';
+                                  }
+                                  return null;
+                                },
                               ),
-                              validator: (value) {
-                                if (!Validators.isValidMobile(value ?? '')) {
-                                  return 'Please enter a valid 10-digit mobile number';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _sendOtp,
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _handleLogin,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: AppColors.primary,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppColors.primary,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Login',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      )
-                                    : const Text('Send OTP'),
+                                ),
                               ),
-                            ),
-                          ] else ...[
-                            TextFormField(
-                              controller: _otpController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              maxLength: 6,
-                              decoration: const InputDecoration(
-                                labelText: 'OTP',
-                                hintText: 'Enter 6-digit OTP',
-                                prefixIcon: Icon(Icons.pin_outlined),
+                              const SizedBox(height: 16),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pushReplacementNamed(context, '/email-login');
+                                },
+                                child: const Text(
+                                  'Use email instead',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                               ),
-                              validator: (value) {
-                                if (value == null || value.length != 6) {
-                                  return 'Please enter valid 6-digit OTP';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _verifyOtp,
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                        ),
-                                      )
-                                    : const Text('Verify & Login'),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextButton(
-                              onPressed: _resendTimer > 0
-                                  ? null
-                                  : () {
-                                      setState(() {
-                                        _otpSent = false;
-                                        _resendTimer = 30;
-                                        _otpController.clear();
-                                      });
-                                    },
-                              child: Text(
-                                _resendTimer > 0
-                                    ? 'Resend OTP in $_resendTimer s'
-                                    : 'Resend OTP',
-                              ),
-                            ),
-                          ],
-                        ],
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
             ),

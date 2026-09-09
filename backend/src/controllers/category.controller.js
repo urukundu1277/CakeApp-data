@@ -1,8 +1,11 @@
 const categoryService = require('../services/category.service');
+const path = require('path');
+const fs = require('fs');
 
 const getCategories = async (req, res) => {
   try {
-    const categories = await categoryService.getAllCategories();
+    const includeInactive = req.query.all === 'true';
+    const categories = await categoryService.getAllCategories(includeInactive);
     res.status(200).json({
       success: true,
       message: 'Categories retrieved successfully',
@@ -40,7 +43,13 @@ const getCategoryById = async (req, res) => {
 
 const createCategory = async (req, res) => {
   try {
-    const category = await categoryService.createCategory(req.body);
+    let categoryData = { ...req.body };
+    
+    if (req.file) {
+      categoryData.image = `/uploads/${req.file.filename}`;
+    }
+    
+    const category = await categoryService.createCategory(categoryData);
     res.status(201).json({
       success: true,
       message: 'Category created successfully',
@@ -56,7 +65,13 @@ const createCategory = async (req, res) => {
 
 const updateCategory = async (req, res) => {
   try {
-    const category = await categoryService.updateCategory(req.params.id, req.body);
+    let updateData = { ...req.body };
+    
+    if (req.file) {
+      updateData.image = `/uploads/${req.file.filename}`;
+    }
+    
+    const category = await categoryService.updateCategory(req.params.id, updateData);
     if (!category) {
       return res.status(404).json({
         success: false,
