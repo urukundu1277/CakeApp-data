@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { notificationService } from '../../services/notificationService';
 
 const getTypeColor = (type) => {
@@ -20,6 +21,7 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchNotifications();
@@ -37,13 +39,19 @@ const Notifications = () => {
     }
   };
 
-  const handleMarkAsRead = async (notificationId) => {
+  const handleNotificationClick = async (notification) => {
     try {
-      await notificationService.markAsRead(notificationId);
-      setNotifications(notifications.map((n) =>
-        n._id === notificationId ? { ...n, isRead: true } : n
-      ));
-      setUnreadCount(Math.max(0, unreadCount - 1));
+      if (!notification.isRead) {
+        await notificationService.markAsRead(notification._id);
+        setNotifications(notifications.map((n) =>
+          n._id === notification._id ? { ...n, isRead: true } : n
+        ));
+        setUnreadCount(Math.max(0, unreadCount - 1));
+      }
+
+      if (notification.type === 'ORDER') {
+        navigate('/orders');
+      }
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
@@ -109,7 +117,8 @@ const Notifications = () => {
           {notifications.map((notification) => (
             <div
               key={notification._id}
-              className={`p-4 hover:bg-gray-50/50 transition-colors ${!notification.isRead ? 'bg-blue-50/50' : ''}`}
+              className={`p-4 hover:bg-gray-50/50 transition-colors cursor-pointer ${!notification.isRead ? 'bg-blue-50/50' : ''}`}
+              onClick={() => handleNotificationClick(notification)}
             >
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 pt-0.5">
@@ -136,7 +145,10 @@ const Notifications = () => {
                 </div>
                 {!notification.isRead && (
                   <button
-                    onClick={() => handleMarkAsRead(notification._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNotificationClick(notification);
+                    }}
                     className="flex-shrink-0 text-sm text-primary-600 hover:text-primary-800 font-medium"
                   >
                     Mark as Read

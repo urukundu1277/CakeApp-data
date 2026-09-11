@@ -2,16 +2,7 @@ import { useState, useEffect } from 'react';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import api from '../../services/api';
-
-const API_BASE_URL = (api.defaults.baseURL || 'http://localhost:5000/api/v1').replace('/api/v1', '');
-
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return '';
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
-  }
-  return `${API_BASE_URL}${imagePath}`;
-};
+import { getImageUrl, handleImageError } from '../../utils/imageUrl';
 
 const AVAILABLE_SIZES = ['0.5kg', '1kg', '1.5kg', '2kg', '2.5kg', '3kg', '5kg'];
 
@@ -391,7 +382,13 @@ const Products = () => {
                           src={getImageUrl(img)}
                           alt={`Existing ${index + 1}`}
                           className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                          onError={handleImageError}
                         />
+                        <div className="img-fallback hidden absolute inset-0 items-center justify-center text-gray-400 bg-gray-50 rounded-lg border border-gray-200">
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 21H5.25A2.25 2.25 0 013 18.75V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v13.5A2.25 2.25 0 0118.75 21zM8.25 8.625a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" />
+                          </svg>
+                        </div>
                         <button
                           type="button"
                           onClick={() => removeExistingImage(index)}
@@ -514,13 +511,21 @@ const Products = () => {
                   <tr key={product._id} className="hover:bg-gray-50/50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden">
+                        <div className="flex-shrink-0 h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden relative">
                           {product.images?.[0] ? (
-                            <img
-                              src={getImageUrl(product.images[0])}
-                              alt={product.name}
-                              className="h-12 w-12 object-cover"
-                            />
+                            <>
+                              <img
+                                src={getImageUrl(product.images[0])}
+                                alt={product.name}
+                                className="h-12 w-12 object-cover"
+                                onError={handleImageError}
+                              />
+                              <div className="img-fallback hidden absolute inset-0 items-center justify-center text-gray-400 bg-gray-50">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 21H5.25A2.25 2.25 0 013 18.75V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v13.5A2.25 2.25 0 0118.75 21zM8.25 8.625a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" />
+                                </svg>
+                              </div>
+                            </>
                           ) : (
                             <div className="h-12 w-12 flex items-center justify-center text-gray-400">
                               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

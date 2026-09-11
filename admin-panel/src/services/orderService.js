@@ -25,4 +25,9 @@ export const orderService = {
     const response = await api.get('/admin/orders/stats');
     return response.data;
   },
+
+  delete: async (id) => {
+    const response = await api.delete(`/admin/orders/${id}`);
+    return response.data;
+  },
 };

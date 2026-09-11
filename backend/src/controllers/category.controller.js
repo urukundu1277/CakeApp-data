@@ -13,15 +13,18 @@ const getCategories = async (req, res) => {
       {
         $lookup: {
           from: 'products',
-          localField: '_id',
-          foreignField: 'category',
-          as: 'products'
+          let: { categoryId: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$category', '$$categoryId'] }, isAvailable: true } },
+            { $count: 'count' }
+          ],
+          as: 'availableProducts'
         }
       },
       {
         $project: {
           _id: 1,
-          productCount: { $size: '$products' }
+          productCount: { $ifNull: [{ $arrayElemAt: ['$availableProducts.count', 0] }, 0] }
         }
       }
     ]);

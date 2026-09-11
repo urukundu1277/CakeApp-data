@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { notificationService } from '../services/notificationService';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: DashboardIcon },
@@ -117,6 +118,26 @@ const AdminLayout = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [newOrderCount, setNewOrderCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnreadOrderNotificationCount = async () => {
+      try {
+        const response = await notificationService.getNotifications();
+        const notifications = response.data || [];
+        const unreadOrderCount = notifications.filter(
+          (n) => n.type === 'ORDER' && !n.isRead
+        ).length;
+        setNewOrderCount(unreadOrderCount);
+      } catch (error) {
+        console.error('Failed to fetch notification count:', error);
+      }
+    };
+
+    fetchUnreadOrderNotificationCount();
+    const interval = setInterval(fetchUnreadOrderNotificationCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
@@ -171,7 +192,14 @@ const AdminLayout = () => {
                     active ? 'sidebar-link-active' : 'sidebar-link-inactive'
                   }`}
                 >
-                  <item.icon />
+                  <span className="relative flex-shrink-0">
+                    <item.icon />
+                    {item.name === 'Orders' && newOrderCount > 0 && (
+                      <span className="absolute -top-1 -right-2 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">
+                        {newOrderCount > 99 ? '99+' : newOrderCount}
+                      </span>
+                    )}
+                  </span>
                   {item.name}
                 </Link>
               );

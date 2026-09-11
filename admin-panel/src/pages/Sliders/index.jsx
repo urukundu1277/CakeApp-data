@@ -10,9 +10,6 @@ const Sliders = () => {
   const [editingSlider, setEditingSlider] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    link: '',
     sortOrder: 0,
     isActive: true,
   });
@@ -53,9 +50,6 @@ const Sliders = () => {
     setSaving(true);
     try {
       const payload = new FormData();
-      payload.append('title', formData.title);
-      payload.append('description', formData.description);
-      payload.append('link', formData.link);
       payload.append('sortOrder', formData.sortOrder.toString());
       payload.append('isActive', formData.isActive.toString());
 
@@ -82,7 +76,7 @@ const Sliders = () => {
   const resetForm = () => {
     setShowForm(false);
     setEditingSlider(null);
-    setFormData({ title: '', description: '', link: '', sortOrder: 0, isActive: true });
+    setFormData({ sortOrder: 0, isActive: true });
     setImageFile(null);
     setImagePreview(null);
     setSaving(false);
@@ -91,9 +85,6 @@ const Sliders = () => {
   const handleEdit = (slider) => {
     setEditingSlider(slider);
     setFormData({
-      title: slider.title || '',
-      description: slider.description || '',
-      link: slider.link || '',
       sortOrder: slider.sortOrder || 0,
       isActive: slider.isActive,
     });
@@ -117,9 +108,6 @@ const Sliders = () => {
   const toggleActive = async (slider) => {
     try {
       const payload = new FormData();
-      payload.append('title', slider.title || '');
-      payload.append('description', slider.description || '');
-      payload.append('link', slider.link || '');
       payload.append('sortOrder', (slider.sortOrder || 0).toString());
       payload.append('isActive', (!slider.isActive).toString());
       await sliderService.update(slider._id, payload);
@@ -190,40 +178,6 @@ const Sliders = () => {
             </p>
           </div>
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="label">Title (Optional)</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="input"
-                  placeholder="e.g., Summer Special"
-                />
-              </div>
-              <div>
-                <label className="label">Link/URL (Optional)</label>
-                <input
-                  type="text"
-                  value={formData.link}
-                  onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                  className="input"
-                  placeholder="e.g., /category/birthday"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="label">Description (Optional)</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="input"
-                rows="2"
-                placeholder="Short description"
-              />
-            </div>
-
             <div>
               <label className="label">
                 Slider Image {!editingSlider && <span className="text-red-500">*</span>}
@@ -363,15 +317,6 @@ const Sliders = () => {
                   </span>
                 </div>
                 <div className="p-4">
-                  {slider.title && (
-                    <h4 className="font-semibold text-sm text-gray-900 mb-1">{slider.title}</h4>
-                  )}
-                  {slider.description && (
-                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">{slider.description}</p>
-                  )}
-                  {slider.link && (
-                    <p className="text-xs text-primary-600 mb-3 truncate">Link: {slider.link}</p>
-                  )}
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => toggleActive(slider)}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { orderService } from '../../services/orderService';
-import { getImageUrl } from '../../utils/imageUrl';
+import { getImageUrl, handleImageError } from '../../utils/imageUrl';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -12,6 +12,9 @@ const Orders = () => {
   const [orderToCancel, setOrderToCancel] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -68,6 +71,28 @@ const Orders = () => {
     setOrderToCancel(order);
     setCancelReason('');
     setShowCancelModal(true);
+  };
+
+  const openDeleteModal = (order) => {
+    setOrderToDelete(order);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!orderToDelete) return;
+    setDeleting(true);
+    try {
+      await orderService.delete(orderToDelete._id);
+      setShowDeleteModal(false);
+      setOrderToDelete(null);
+      fetchOrders();
+      setSelectedOrder(null);
+    } catch (error) {
+      console.error('Failed to delete order:', error);
+      alert('Failed to delete order: ' + error.message);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -185,17 +210,25 @@ const Orders = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="space-y-2">
-                        {order.items?.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            {item.image && (
-                              <img
-                                src={getImageUrl(item.image)}
-                                alt={item.name}
-                                className="w-8 h-8 object-cover rounded border border-gray-200"
-                              />
-                            )}
-                            <div className="min-w-0">
+                        <div className="space-y-2">
+                          {order.items?.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              {item.image && (
+                                <div className="relative flex-shrink-0">
+                                  <img
+                                    src={getImageUrl(item.image)}
+                                    alt={item.name}
+                                    className="w-8 h-8 object-cover rounded border border-gray-200"
+                                    onError={handleImageError}
+                                  />
+                                  <div className="img-fallback hidden absolute inset-0 items-center justify-center text-gray-400 bg-gray-50 rounded border border-gray-200">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 21H5.25A2.25 2.25 0 013 18.75V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v13.5A2.25 2.25 0 0118.75 21zM8.25 8.625a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="min-w-0">
                               <div className="text-sm font-medium text-gray-900 truncate max-w-[200px]">{item.name}</div>
                               <div className="text-xs text-gray-500">
                                 Qty: {item.quantity} | ₹{item.price} each | ₹{item.total}
@@ -242,6 +275,15 @@ const Orders = () => {
                             </svg>
                           </button>
                         )}
+                        <button
+                          onClick={() => openDeleteModal(order)}
+                          className="text-red-700 hover:text-red-900 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Delete Order"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -357,12 +399,18 @@ const Orders = () => {
                   {selectedOrder.items?.map((item, index) => (
                     <div key={index} className="card p-4 flex gap-4">
                       {item.image && (
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 relative">
                           <img
                             src={getImageUrl(item.image)}
                             alt={item.name}
                             className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                            onError={handleImageError}
                           />
+                          <div className="img-fallback hidden absolute inset-0 items-center justify-center text-gray-400 bg-gray-50 rounded-lg border border-gray-200">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 21H5.25A2.25 2.25 0 013 18.75V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v13.5A2.25 2.25 0 0118.75 21zM8.25 8.625a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" />
+                            </svg>
+                          </div>
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
@@ -488,6 +536,44 @@ const Orders = () => {
                   className="btn-danger"
                 >
                   {cancelling ? 'Cancelling...' : 'Yes, Cancel Order'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowDeleteModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Delete Order</h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Are you sure you want to permanently delete order <strong>{orderToDelete?.orderNumber}</strong>? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setOrderToDelete(null);
+                  }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteOrder}
+                  disabled={deleting}
+                  className="btn-danger"
+                >
+                  {deleting ? 'Deleting...' : 'Yes, Delete Order'}
                 </button>
               </div>
             </div>
