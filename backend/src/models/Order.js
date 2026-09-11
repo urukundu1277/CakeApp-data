@@ -14,6 +14,13 @@ const orderItemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+  },
+  categoryName: {
+    type: String,
+  },
   size: {
     type: String,
     trim: true,

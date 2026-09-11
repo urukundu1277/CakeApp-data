@@ -3,6 +3,16 @@ import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import api from '../../services/api';
 
+const API_BASE_URL = (api.defaults.baseURL || 'http://localhost:5000/api/v1').replace('/api/v1', '');
+
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  return `${API_BASE_URL}${imagePath}`;
+};
+
 const AVAILABLE_SIZES = ['0.5kg', '1kg', '1.5kg', '2kg', '2.5kg', '3kg', '5kg'];
 
 const Products = () => {
@@ -15,7 +25,7 @@ const Products = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    categories: [],
+    category: null,
     basePrice: '',
     sizes: [],
     isAvailable: true,
@@ -65,12 +75,10 @@ const Products = () => {
     setExistingImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const toggleCategory = (categoryId) => {
+  const handleCategorySelect = (categoryId) => {
     setFormData(prev => ({
       ...prev,
-      categories: prev.categories.includes(categoryId)
-        ? prev.categories.filter(id => id !== categoryId)
-        : [...prev.categories, categoryId],
+      category: categoryId,
     }));
   };
 
@@ -91,8 +99,8 @@ const Products = () => {
       return;
     }
 
-    if (formData.categories.length === 0) {
-      alert('Please select at least one category');
+    if (!formData.category) {
+      alert('Please select a category');
       return;
     }
 
@@ -100,8 +108,8 @@ const Products = () => {
       const payload = new FormData();
       payload.append('name', formData.name);
       payload.append('description', formData.description);
+      payload.append('category', formData.category);
       payload.append('basePrice', formData.basePrice);
-      payload.append('categories', JSON.stringify(formData.categories));
       payload.append('sizes', JSON.stringify(formData.sizes));
       payload.append('isAvailable', formData.isAvailable);
       payload.append('featured', formData.featured);
@@ -133,7 +141,7 @@ const Products = () => {
     setFormData({
       name: '',
       description: '',
-      categories: [],
+      category: null,
       basePrice: '',
       sizes: [],
       isAvailable: true,
@@ -149,7 +157,7 @@ const Products = () => {
     setFormData({
       name: product.name,
       description: product.description,
-      categories: product.categories?.map(c => c._id) || [],
+      category: product.category?._id || null,
       basePrice: product.basePrice,
       sizes: product.sizes || [],
       isAvailable: product.isAvailable,
@@ -247,24 +255,21 @@ const Products = () => {
 
             <div className="mt-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">
-                Categories (select multiple)
+                Category
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border border-gray-300 rounded max-h-40 overflow-y-auto">
+              <select
+                value={formData.category || ''}
+                onChange={(e) => handleCategorySelect(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded"
+                required
+              >
+                <option value="">Select a category</option>
                 {categories.map((cat) => (
-                  <label
-                    key={cat._id}
-                    className="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.categories.includes(cat._id)}
-                      onChange={() => toggleCategory(cat._id)}
-                      className="mr-2 w-4 h-4 accent-blue-500"
-                    />
-                    <span className="text-sm">{cat.name}</span>
-                  </label>
+                  <option key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </option>
                 ))}
-              </div>
+              </select>
               {categories.length === 0 && (
                 <p className="text-gray-500 text-sm mt-1">No categories available. Add categories first.</p>
               )}
@@ -326,7 +331,7 @@ const Products = () => {
                     {existingImages.map((img, index) => (
                       <div key={index} className="relative">
                         <img
-                          src={img.startsWith('http') ? img : `${api.defaults.baseURL?.replace('/api/v1', '') || ''}${img}`}
+                          src={getImageUrl(img)}
                           alt={`Existing ${index + 1}`}
                           className="w-20 h-20 object-cover rounded border"
                         />

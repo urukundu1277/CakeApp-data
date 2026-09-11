@@ -37,7 +37,7 @@ const createOrder = async (req, res) => {
   try {
     const { addressId, deliveryDate, deliveryTimeSlot, cakeMessage } = req.body;
 
-    const cart = await Cart.findOne({ user: req.user._id }).populate('items.product', 'name images');
+    const cart = await Cart.findOne({ user: req.user._id }).populate('items.product', 'name images category');
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -56,16 +56,22 @@ const createOrder = async (req, res) => {
     const orderData = {
       orderNumber: require('../utils/generateOrderNumber').generateOrderNumber(),
       user: req.user._id,
-      items: cart.items.map((item) => ({
-        product: item.product._id,
-        name: item.product.name,
-        image: item.product.images[0] || '',
-        size: item.size,
-        flavor: item.flavor || '',
-        quantity: item.quantity,
-        price: item.price,
-        total: item.price * item.quantity,
-      })),
+      items: cart.items.map((item) => {
+        const product = item.product;
+        const category = product.category ? (typeof product.category === 'object' ? product.category : null) : null;
+        return {
+          product: product._id,
+          name: product.name,
+          image: product.images[0] || '',
+          categoryId: category ? category._id : null,
+          categoryName: category ? category.name : '',
+          size: item.size,
+          flavor: item.flavor || '',
+          quantity: item.quantity,
+          price: item.price,
+          total: item.price * item.quantity,
+        };
+      }),
       address: {
         name: address.name,
         mobile: address.mobile,

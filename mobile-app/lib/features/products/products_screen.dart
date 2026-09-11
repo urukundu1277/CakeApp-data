@@ -24,38 +24,60 @@ class ProductsScreen extends StatefulWidget {
 
 class _ProductsScreenState extends State<ProductsScreen> {
   late Future<List<ProductModel>> _productsFuture;
+  Map<String, dynamic>? _routeArgs;
 
   @override
   void initState() {
     super.initState();
-    _loadProducts();
-  }
-
-  @override
-  void didUpdateWidget(ProductsScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.category != oldWidget.category || widget.categoryId != oldWidget.categoryId) {
-      _loadProducts();
-    }
-  }
-
-  void _loadProducts() {
-    setState(() {
-      _productsFuture = ProductService().getProducts(
-        category: widget.category ?? '',
-        categoryId: widget.categoryId ?? '',
-      );
-    });
+    _loadCartCount();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null && args['categoryId'] != null && widget.categoryId != args['categoryId']) {
-      // Reload products if categoryId changes
+    if (args != null && _routeArgs == null) {
+      _routeArgs = args;
       _loadProducts();
     }
+    _loadCartCount();
+  }
+
+  Future<void> _loadCartCount() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.token;
+    if (token == null || token.isEmpty) {
+      if (mounted) {
+        setState(() {
+          // _cartItemCount = 0;
+        });
+      }
+      return;
+    }
+    try {
+      final cartService = CartService();
+      final cart = await cartService.getCart(token);
+      if (mounted) {
+        // setState(() {
+        //   _cartItemCount = cart.items.fold<int>(0, (sum, item) => sum + item.quantity);
+        // });
+      }
+    } catch (e) {
+      // ignore cart count errors
+    }
+  }
+
+  void _loadProducts() {
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final category = widget.category ?? (args?['category'] ?? '');
+    final categoryId = widget.categoryId ?? (args?['categoryId'] ?? '');
+    
+    setState(() {
+      _productsFuture = ProductService().getProducts(
+        category: category,
+        categoryId: categoryId,
+      );
+    });
   }
 
   @override

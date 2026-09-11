@@ -84,7 +84,7 @@ class ProductModel {
       id: parseString(json['_id'] ?? json['id']),
       name: parseString(json['name']),
       description: parseString(json['description']),
-      categories: _parseCategories(json['categories']),
+      categories: _parseCategories(json['categories'] ?? json['category']),
       images: _parseStringList(json['images']),
       sizes: _parseStringList(json['sizes']),
       sizePrices: _parseSizePrices(json['sizePrices']),
@@ -132,6 +132,20 @@ class ProductModel {
         }
         return CategoryRef(id: e.toString(), name: '');
       }).toList();
+    }
+    if (data is Map<String, dynamic>) {
+      return [
+        CategoryRef(
+          id: parseString(data['_id'] ?? data['id']),
+          name: parseString(data['name']),
+          isFlavorCategory: parseBool(data['isFlavorCategory'] ?? false),
+          requiresFlavorSelection: parseBool(data['requiresFlavorSelection'] ?? false),
+          availableFlavors: _parseStringList(data['availableFlavors']),
+        ),
+      ];
+    }
+    if (data is String && data.isNotEmpty) {
+      return [CategoryRef(id: data, name: data)];
     }
     return [];
   }

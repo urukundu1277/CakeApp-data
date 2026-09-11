@@ -9,5 +9,6 @@ router.get('/', protect, authorize('ADMIN'), adminOrderController.getAllOrders);
 router.get('/:id', protect, authorize('ADMIN'), adminOrderController.getOrderById);
 router.put('/:id/status', protect, authorize('ADMIN'), validateStatusUpdate, adminOrderController.updateOrderStatus);
 router.put('/:id/cancel', protect, authorize('ADMIN'), adminOrderController.cancelOrder);
+router.delete('/:id', protect, authorize('ADMIN'), adminOrderController.deleteOrder);
 
 module.exports = router;

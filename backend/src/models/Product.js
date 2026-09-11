@@ -12,11 +12,11 @@ const productSchema = new mongoose.Schema({
     required: [true, 'Description is required'],
     maxlength: [1000, 'Description cannot exceed 1000 characters'],
   },
-  categories: [{
+  category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
     required: true,
-  }],
+  },
   images: [{
     type: String,
     required: true,
@@ -90,7 +90,7 @@ const productSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-productSchema.index({ categories: 1 });
+productSchema.index({ category: 1 });
 productSchema.index({ isAvailable: 1 });
 productSchema.index({ featured: 1 });
 productSchema.index({ name: 'text', description: 'text' });

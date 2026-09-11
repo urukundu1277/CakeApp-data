@@ -36,8 +36,8 @@ const validateProduct = [
     .trim()
     .notEmpty().withMessage('Description is required')
     .isLength({ max: 1000 }).withMessage('Description cannot exceed 1000 characters'),
-  body('categories')
-    .isArray({ min: 1 }).withMessage('At least one category is required'),
+  body('category')
+    .notEmpty().withMessage('Category is required'),
   body('basePrice')
     .isFloat({ min: 0 }).withMessage('Base price must be a positive number'),
   validateRequest,

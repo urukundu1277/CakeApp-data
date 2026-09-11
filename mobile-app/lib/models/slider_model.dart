@@ -1,4 +1,5 @@
 import '../core/utils/num_parsers.dart';
+import '../core/constants/api_constants.dart';
 
 class SliderModel {
   final String id;
@@ -18,6 +19,20 @@ class SliderModel {
     this.sortOrder = 0,
     this.isActive = true,
   });
+
+  String get resolvedImage {
+    if (image.isEmpty) return '';
+    if (image.startsWith('http://') || image.startsWith('https://')) return image;
+    if (image.startsWith('/')) {
+      final apiBase = ApiConstants.baseUrl;
+      String baseUrl = apiBase.replaceAll('/api/v1', '');
+      if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+      }
+      return '$baseUrl$image';
+    }
+    return image;
+  }
 
   factory SliderModel.fromJson(Map<String, dynamic> json) {
     return SliderModel(

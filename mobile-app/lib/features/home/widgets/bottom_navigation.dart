@@ -39,17 +39,10 @@ class BottomNavigation extends StatelessWidget {
               ),
               _buildNavItem(
                 context,
-                icon: Icons.grid_view_outlined,
-                activeIcon: Icons.grid_view,
-                label: 'Categories',
-                index: 1,
-              ),
-              _buildNavItem(
-                context,
                 icon: Icons.receipt_long_outlined,
                 activeIcon: Icons.receipt_long,
                 label: 'Orders',
-                index: 2,
+                index: 1,
               ),
             ],
           ),

@@ -1,15 +1,45 @@
 const categoryService = require('../services/category.service');
 const path = require('path');
 const fs = require('fs');
+const Category = require('../models/Category');
 
 const getCategories = async (req, res) => {
   try {
     const includeInactive = req.query.all === 'true';
     const categories = await categoryService.getAllCategories(includeInactive);
+    
+    // Get product counts for each category
+    const productCounts = await Category.aggregate([
+      {
+        $lookup: {
+          from: 'products',
+          localField: '_id',
+          foreignField: 'categories',
+          as: 'products'
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          productCount: { $size: '$products' }
+        }
+      }
+    ]);
+
+    const productCountMap = {};
+    productCounts.forEach(item => {
+      productCountMap[item._id.toString()] = item.productCount;
+    });
+
+    const categoriesWithCounts = categories.map(category => ({
+      ...category.toObject(),
+      productCount: productCountMap[category._id.toString()] || 0
+    }));
+
     res.status(200).json({
       success: true,
       message: 'Categories retrieved successfully',
-      data: categories,
+      data: categoriesWithCounts,
     });
   } catch (error) {
     res.status(500).json({

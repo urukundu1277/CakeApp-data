@@ -83,7 +83,7 @@ class _CakeSliderState extends State<CakeSlider> {
               itemBuilder: (context, index) {
                 final slider = widget.sliders[index];
                 return Image.network(
-                  slider.image,
+                  slider.resolvedImage,
                   fit: BoxFit.cover,
                   width: double.infinity,
                   loadingBuilder: (context, child, progress) {

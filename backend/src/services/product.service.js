@@ -15,11 +15,11 @@ const getAllProducts = async (filters = {}) => {
   const query = {};
 
   if (categoryId) {
-    query.categories = categoryId;
+    query.category = categoryId;
   } else if (category && category !== 'all') {
     const categoryDoc = await Category.findOne({ name: { $regex: new RegExp(category, 'i') } });
     if (categoryDoc) {
-      query.categories = categoryDoc._id;
+      query.category = categoryDoc._id;
     }
   }
 
@@ -38,7 +38,7 @@ const getAllProducts = async (filters = {}) => {
   const skip = (parseInt(page) - 1) * parseInt(limit);
 
   const products = await Product.find(query)
-    .populate('categories', 'name')
+    .populate('category', 'name')
     .sort({ featured: -1, createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
@@ -57,12 +57,12 @@ const getAllProducts = async (filters = {}) => {
 };
 
 const getProductById = async (id) => {
-  return await Product.findById(id).populate('categories', 'name');
+  return await Product.findById(id).populate('category', 'name');
 };
 
 const getFeaturedProducts = async (limit = 10) => {
   return await Product.find({ isAvailable: true, featured: true })
-    .populate('categories', 'name')
+    .populate('category', 'name')
     .sort({ createdAt: -1 })
     .limit(limit);
 };
@@ -80,11 +80,11 @@ const searchProducts = async (searchQuery, filters = {}) => {
   };
 
   if (filters.category) {
-    query.categories = filters.category;
+    query.category = filters.category;
   }
 
   const products = await Product.find(query)
-    .populate('categories', 'name')
+    .populate('category', 'name')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
@@ -104,7 +104,7 @@ const searchProducts = async (searchQuery, filters = {}) => {
 
 const createProduct = async (productData) => {
   const product = await Product.create(productData);
-  return await product.populate('categories', 'name');
+  return await product.populate('category', 'name');
 };
 
 const updateProduct = async (id, productData) => {
@@ -114,7 +114,7 @@ const updateProduct = async (id, productData) => {
   if (!product) {
     throw new Error('Product not found');
   }
-  return await product.populate('categories', 'name');
+  return await product.populate('category', 'name');
 };
 
 const deleteProduct = async (id) => {

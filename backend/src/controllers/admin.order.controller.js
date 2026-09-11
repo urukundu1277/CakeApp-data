@@ -106,6 +106,29 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+const getOrderByIdForAdmin = async (req, res) => {
+  try {
+    const order = await adminOrderService.getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Order retrieved successfully',
+      data: order,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to retrieve order',
+    });
+  }
+};
+
 const cancelOrder = async (req, res) => {
   try {
     const { cancellationReason } = req.body;
@@ -141,6 +164,27 @@ const cancelOrder = async (req, res) => {
   }
 };
 
+const deleteOrder = async (req, res) => {
+  try {
+    const order = await adminOrderService.deleteOrder(req.params.id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Order deleted successfully',
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to delete order',
+    });
+  }
+};
+
 const getDashboardStats = async (req, res) => {
   try {
     const stats = await adminOrderService.getDashboardStats();
@@ -164,5 +208,6 @@ module.exports = {
   getOrderById,
   updateOrderStatus,
   cancelOrder,
+  deleteOrder,
   getDashboardStats,
 };

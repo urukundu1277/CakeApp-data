@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { categoryService } from '../../services/categoryService';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -238,7 +239,7 @@ const Categories = () => {
               {!imagePreview && editingCategory?.image && (
                 <div className="mt-2">
                   <img
-                    src={editingCategory.image}
+                    src={getImageUrl(editingCategory.image)}
                     alt="Current"
                     className="w-32 h-32 object-cover rounded-lg border border-gray-300"
                   />
@@ -300,13 +301,10 @@ const Categories = () => {
                 Order
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Image
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Sort Order
+                Products
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Status
@@ -319,7 +317,7 @@ const Categories = () => {
           <tbody className="divide-y divide-gray-200">
             {categories.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                   No categories yet. Add your first category.
                 </td>
               </tr>
@@ -346,21 +344,12 @@ const Categories = () => {
                       </button>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {category.image ? (
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <span className="text-gray-400 text-xs">No image</span>
-                      </div>
-                    )}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap font-medium">{category.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{category.sortOrder}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                      {category.productCount || 0} products
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => handleToggleActive(category)}

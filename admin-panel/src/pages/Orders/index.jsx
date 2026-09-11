@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { orderService } from '../../services/orderService';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -143,6 +144,7 @@ const Orders = () => {
                   <div>
                     <div className="font-medium">{order.user?.name || 'N/A'}</div>
                     <div className="text-sm text-gray-500">{order.user?.mobile || ''}</div>
+                    <div className="text-xs text-gray-400">ID: {order.user?._id || 'N/A'}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -151,7 +153,7 @@ const Orders = () => {
                       <div key={idx} className="flex items-center gap-2">
                         {item.image && (
                           <img
-                            src={item.image}
+                            src={getImageUrl(item.image)}
                             alt={item.name}
                             className="w-10 h-10 object-cover rounded"
                           />
@@ -159,8 +161,7 @@ const Orders = () => {
                         <div>
                           <div className="text-sm font-medium">{item.name}</div>
                           <div className="text-xs text-gray-500">
-                            Qty: {item.quantity} | Size: {item.size || 'N/A'}
-                            {item.flavor && ` | Flavor: ${item.flavor}`}
+                            Qty: {item.quantity} | ₹{item.price} each | Total: ₹{item.total}
                           </div>
                         </div>
                       </div>
@@ -217,19 +218,22 @@ const Orders = () => {
             </div>
             <div className="space-y-4">
               <div>
-                <strong>Order Number:</strong> {selectedOrder.orderNumber}
+                <strong>Customer ID:</strong> {selectedOrder.user?._id || 'N/A'}
               </div>
               <div>
-                <strong>Customer:</strong> {selectedOrder.user?.name}
+                <strong>Customer Name:</strong> {selectedOrder.user?.name || 'N/A'}
               </div>
               <div>
-                <strong>Customer Mobile:</strong> {selectedOrder.user?.mobile}
+                <strong>Mobile Number:</strong> {selectedOrder.user?.mobile || 'N/A'}
               </div>
               <div>
-                <strong>Total Amount:</strong> ₹{selectedOrder.totalAmount}
+                <strong>Email:</strong> {selectedOrder.user?.email || 'N/A'}
               </div>
               <div>
-                <strong>Payment Status:</strong> {selectedOrder.paymentStatus}
+                <strong>Order ID:</strong> {selectedOrder.orderNumber}
+              </div>
+              <div>
+                <strong>Order Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}
               </div>
               <div>
                 <strong>Order Status:</strong>{' '}
@@ -238,8 +242,19 @@ const Orders = () => {
                 </span>
               </div>
               <div>
-                <strong>Delivery Date:</strong>{' '}
-                {new Date(selectedOrder.deliveryDate).toLocaleDateString()}
+                <strong>Delivery Address:</strong>
+                <div className="mt-1 p-3 bg-gray-50 rounded">
+                  <p>{selectedOrder.address?.name || 'N/A'}</p>
+                  <p>{selectedOrder.address?.mobile || ''}</p>
+                  <p>{selectedOrder.address?.addressLine1 || ''}</p>
+                  {selectedOrder.address?.addressLine2 && <p>{selectedOrder.address.addressLine2}</p>}
+                  <p>{selectedOrder.address?.city || ''}, {selectedOrder.address?.state || ''}</p>
+                  <p>{selectedOrder.address?.pincode || ''}</p>
+                  {selectedOrder.address?.landmark && <p>Landmark: {selectedOrder.address.landmark}</p>}
+                </div>
+              </div>
+              <div>
+                <strong>Delivery Date:</strong> {new Date(selectedOrder.deliveryDate).toLocaleDateString()}
               </div>
               <div>
                 <strong>Delivery Time:</strong> {selectedOrder.deliveryTimeSlot}
@@ -267,7 +282,7 @@ const Orders = () => {
                     <div key={index} className="flex items-start gap-3 border rounded-lg p-3">
                       {item.image && (
                         <img
-                          src={item.image}
+                          src={getImageUrl(item.image)}
                           alt={item.name}
                           className="w-20 h-20 object-cover rounded-lg"
                         />
@@ -278,11 +293,32 @@ const Orders = () => {
                           <div>Quantity: {item.quantity}</div>
                           <div>Size: {item.size || 'N/A'}</div>
                           {item.flavor && <div>Flavor: {item.flavor}</div>}
-                          <div>Price: ₹{item.price} | Total: ₹{item.total}</div>
+                          <div>Unit Price: ₹{item.price}</div>
+                          <div>Total: ₹{item.total}</div>
                         </div>
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+              <div className="border-t pt-3">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>₹{selectedOrder.subtotal}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Delivery Fee:</span>
+                  <span>₹{selectedOrder.deliveryFee}</span>
+                </div>
+                {selectedOrder.discount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount:</span>
+                    <span>-₹{selectedOrder.discount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-lg font-bold mt-2 pt-2 border-t">
+                  <span>Grand Total:</span>
+                  <span>₹{selectedOrder.totalAmount}</span>
                 </div>
               </div>
               {canCancelOrder(selectedOrder) && (

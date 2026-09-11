@@ -21,7 +21,7 @@ const getAllOrders = async (filters = {}) => {
   const skip = (page - 1) * limit;
 
   const orders = await Order.find(query)
-    .populate('user', 'name email mobile')
+    .populate('user', '_id name email mobile')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -40,7 +40,7 @@ const getAllOrders = async (filters = {}) => {
 
 const getOrderById = async (orderId) => {
   return await Order.findById(orderId)
-    .populate('user', 'name email mobile')
+    .populate('user', '_id name email mobile')
     .populate('items.product', 'name images');
 };
 
@@ -64,6 +64,11 @@ const cancelOrder = async (orderId, cancellationReason) => {
     },
     { new: true, runValidators: true }
   );
+  return order;
+};
+
+const deleteOrder = async (orderId) => {
+  const order = await Order.findByIdAndDelete(orderId);
   return order;
 };
 
@@ -104,5 +109,6 @@ module.exports = {
   getOrderById,
   updateOrderStatus,
   cancelOrder,
+  deleteOrder,
   getDashboardStats,
 };

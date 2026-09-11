@@ -100,12 +100,13 @@ const parseProductBody = (req, res, next) => {
   try {
     const body = { ...req.body };
 
-    if (body.categories) {
+    if (body.categories && !body.category) {
       try {
-        body.categories = JSON.parse(body.categories);
+        const categories = JSON.parse(body.categories);
+        body.category = categories[categories.length - 1] || categories[0];
       } catch {
         if (typeof body.categories === 'string') {
-          body.categories = [body.categories];
+          body.category = body.categories;
         }
       }
     }
@@ -130,16 +131,22 @@ const parseProductBody = (req, res, next) => {
       }
     }
 
-    if (req.files && req.files.length > 0) {
-      body.images = req.files.map(file => `/uploads/${file.filename}`);
-    } else if (body.images) {
+    let existingImages = [];
+    if (body.images) {
       try {
-        body.images = JSON.parse(body.images);
+        existingImages = JSON.parse(body.images);
       } catch {
         if (typeof body.images === 'string') {
-          body.images = body.images.split(',').map(s => s.trim()).filter(s => s);
+          existingImages = body.images.split(',').map(s => s.trim()).filter(s => s);
         }
       }
+    }
+
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map(file => `/uploads/${file.filename}`);
+      body.images = [...existingImages, ...newImages];
+    } else {
+      body.images = existingImages;
     }
 
     req.body = body;
