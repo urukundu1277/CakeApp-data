@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react';
 import { notificationService } from '../../services/notificationService';
 
+const getTypeColor = (type) => {
+  switch (type) {
+    case 'ORDER':
+      return 'badge-info';
+    case 'PAYMENT':
+      return 'badge-success';
+    case 'PROMOTION':
+      return 'badge-warning';
+    case 'SYSTEM':
+      return 'badge-gray';
+    default:
+      return 'badge-gray';
+  }
+};
+
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,33 +59,33 @@ const Notifications = () => {
     }
   };
 
-  const getTypeColor = (type) => {
-    switch (type) {
-      case 'ORDER':
-        return 'bg-blue-100 text-blue-800';
-      case 'PAYMENT':
-        return 'bg-green-100 text-green-800';
-      case 'PROMOTION':
-        return 'bg-purple-100 text-purple-800';
-      case 'SYSTEM':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   if (loading) {
-    return <div className="text-center py-8">Loading notifications...</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex flex-col items-center gap-3">
+          <svg className="animate-spin h-8 w-8 text-primary-600" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <p className="text-sm text-gray-500">Loading notifications...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Notifications</h2>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="page-title">Notifications</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Stay updated with order and system alerts
+          </p>
+        </div>
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllAsRead}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="btn-primary"
           >
             Mark All as Read ({unreadCount})
           </button>
@@ -78,50 +93,58 @@ const Notifications = () => {
       </div>
 
       {notifications.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-          <p className="text-lg mb-2">No notifications yet</p>
-          <p className="text-sm">Notifications will appear here when customers place orders or update order status.</p>
+        <div className="card p-8 text-center">
+          <div className="mx-auto h-16 w-16 text-gray-300 mb-4">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900">No notifications yet</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Notifications will appear here when customers place orders or update order status.
+          </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="divide-y divide-gray-200">
-            {notifications.map((notification) => (
-              <div
-                key={notification._id}
-                className={`p-4 hover:bg-gray-50 ${!notification.isRead ? 'bg-blue-50' : ''}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-sm font-semibold text-gray-900">
-                        {notification.title}
-                      </h3>
-                      <span className={`px-2 py-1 text-xs rounded ${getTypeColor(notification.type)}`}>
-                        {notification.type}
-                      </span>
-                      {!notification.isRead && (
-                        <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">New</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(notification.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  {!notification.isRead && (
-                    <button
-                      onClick={() => handleMarkAsRead(notification._id)}
-                      className="ml-4 text-blue-600 hover:text-blue-800 text-sm"
-                    >
-                      Mark as Read
-                    </button>
-                  )}
+        <div className="card overflow-hidden divide-y divide-gray-100">
+          {notifications.map((notification) => (
+            <div
+              key={notification._id}
+              className={`p-4 hover:bg-gray-50/50 transition-colors ${!notification.isRead ? 'bg-blue-50/50' : ''}`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 pt-0.5">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${!notification.isRead ? 'bg-blue-500' : 'bg-transparent'}`} />
                 </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {notification.title}
+                    </h3>
+                    <span className={getTypeColor(notification.type)}>
+                      {notification.type}
+                    </span>
+                    {!notification.isRead && (
+                      <span className="badge-danger">New</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {notification.message}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(notification.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                {!notification.isRead && (
+                  <button
+                    onClick={() => handleMarkAsRead(notification._id)}
+                    className="flex-shrink-0 text-sm text-primary-600 hover:text-primary-800 font-medium"
+                  >
+                    Mark as Read
+                  </button>
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

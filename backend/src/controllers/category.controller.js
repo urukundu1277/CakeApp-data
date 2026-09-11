@@ -14,7 +14,7 @@ const getCategories = async (req, res) => {
         $lookup: {
           from: 'products',
           localField: '_id',
-          foreignField: 'categories',
+          foreignField: 'category',
           as: 'products'
         }
       },

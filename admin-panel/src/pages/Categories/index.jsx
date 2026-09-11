@@ -7,6 +7,7 @@ const Categories = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     image: '',
@@ -46,6 +47,7 @@ const Categories = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
@@ -65,6 +67,8 @@ const Categories = () => {
     } catch (error) {
       console.error('Failed to save category:', error);
       alert(error.response?.data?.message || 'Failed to save category');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -176,211 +180,292 @@ const Categories = () => {
     setFormData({ name: '', image: '', sortOrder: 0, isActive: true });
     setImageFile(null);
     setImagePreview('');
+    setSaving(false);
   };
 
   if (loading) {
-    return <div className="text-center py-8">Loading categories...</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex flex-col items-center gap-3">
+          <svg className="animate-spin h-8 w-8 text-primary-600" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <p className="text-sm text-gray-500">Loading categories...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Categories</h2>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="page-title">Categories</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Organize your products into categories
+          </p>
+        </div>
         <button
           onClick={() => {
             resetForm();
             setShowForm(true);
           }}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className="btn-primary"
         >
+          <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
           Add Category
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h3 className="text-lg font-bold mb-4">
-            {editingCategory ? 'Edit Category' : 'Add Category'}
-          </h3>
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Category Name
-              </label>
+        <div className="card">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="section-title">
+              {editingCategory ? 'Edit Category' : 'Add Category'}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {editingCategory ? 'Update category details below' : 'Create a new product category'}
+            </p>
+          </div>
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div>
+              <label className="label">Category Name</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
+                className="input"
                 required
                 placeholder="e.g., Birthday Cakes"
               />
             </div>
 
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Category Image
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              />
-              {imagePreview && (
-                <div className="mt-2">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+            <div>
+              <label className="label">Category Image</label>
+              <div className="mt-1 flex items-center gap-4">
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="input"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Upload a category image (PNG, JPG up to 5MB)</p>
                 </div>
-              )}
-              {!imagePreview && editingCategory?.image && (
-                <div className="mt-2">
-                  <img
-                    src={getImageUrl(editingCategory.image)}
-                    alt="Current"
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-300"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">Current image</p>
+                <div className="flex-shrink-0">
+                  {(imagePreview || (!imagePreview && editingCategory?.image)) ? (
+                    <img
+                      src={imagePreview || getImageUrl(editingCategory?.image)}
+                      alt="Preview"
+                      className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400">
+                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 21H5.25A2.25 2.25 0 013 18.75V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v13.5A2.25 2.25 0 0118.75 21zM8.25 8.625a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Sort Order
-              </label>
-              <input
-                type="number"
-                value={formData.sortOrder}
-                onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-                placeholder="0"
-              />
-              <p className="text-gray-500 text-xs mt-1">Lower numbers appear first</p>
-            </div>
-
-            <div className="mb-4">
-              <label className="flex items-center cursor-pointer">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label className="label">Sort Order</label>
                 <input
-                  type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="mr-2"
+                  type="number"
+                  value={formData.sortOrder}
+                  onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
+                  className="input"
+                  placeholder="0"
                 />
-                <span className="text-gray-700">Active</span>
-              </label>
+                <p className="text-xs text-gray-500 mt-1">Lower numbers appear first in the app</p>
+              </div>
+
+              <div>
+                <label className="label">Status</label>
+                <div className="flex items-center gap-3 mt-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                  <span className="text-sm text-gray-700">
+                    {formData.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                {editingCategory ? 'Update' : 'Create'}
-              </button>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 border-t border-gray-100">
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                className="btn-secondary"
               >
                 Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn-success"
+              >
+                {saving ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Saving...
+                  </span>
+                ) : editingCategory ? (
+                  'Update Category'
+                ) : (
+                  'Create Category'
+                )}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Order
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Products
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {categories.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                  No categories yet. Add your first category.
-                </td>
-              </tr>
-            ) : (
-              categories.map((category, index) => (
-                <tr key={category._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col gap-1">
-                      <button
-                        onClick={() => handleMoveUp(index)}
-                        disabled={index === 0}
-                        className="text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move Up"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        onClick={() => handleMoveDown(index)}
-                        disabled={index === categories.length - 1}
-                        className="text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move Down"
-                      >
-                        ↓
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{category.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                      {category.productCount || 0} products
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handleToggleActive(category)}
-                      className={`px-3 py-1 rounded text-sm ${
-                        category.isActive
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200'
-                      }`}
-                    >
-                      {category.isActive ? 'Active' : 'Inactive'}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap space-x-2">
-                    <button
-                      onClick={() => handleEdit(category)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(category._id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
-                  </td>
+      <div className="card overflow-hidden">
+        {categories.length === 0 ? (
+          <div className="px-6 py-16 text-center">
+            <div className="mx-auto h-16 w-16 text-gray-300">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+            </div>
+            <h3 className="mt-4 text-lg font-medium text-gray-900">No categories yet</h3>
+            <p className="mt-1 text-sm text-gray-500">Get started by adding your first category.</p>
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(true);
+              }}
+              className="btn-primary mt-4"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Category
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Order
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Products
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {categories.map((category, index) => (
+                  <tr key={category._id} className="hover:bg-gray-50/50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => handleMoveUp(index)}
+                          disabled={index === 0}
+                          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed rounded hover:bg-gray-100 transition-colors"
+                          title="Move Up"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleMoveDown(index)}
+                          disabled={index === categories.length - 1}
+                          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed rounded hover:bg-gray-100 transition-colors"
+                          title="Move Down"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        {category.image && (
+                          <img
+                            src={getImageUrl(category.image)}
+                            alt={category.name}
+                            className="w-10 h-10 rounded-lg object-cover border border-gray-200"
+                          />
+                        )}
+                        <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="badge badge-info">
+                        {category.productCount || 0} products
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleToggleActive(category)}
+                        className={`badge cursor-pointer transition-colors ${
+                          category.isActive
+                            ? 'badge-success hover:bg-emerald-200'
+                            : 'badge-danger hover:bg-red-200'
+                        }`}
+                      >
+                        {category.isActive ? 'Active' : 'Inactive'}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEdit(category)}
+                          className="text-primary-600 hover:text-primary-900 p-1.5 rounded-lg hover:bg-primary-50 transition-colors"
+                          title="Edit"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(category._id)}
+                          className="text-red-600 hover:text-red-900 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Delete"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

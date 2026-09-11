@@ -1,5 +1,4 @@
-const API_BASE_URL = (typeof window !== 'undefined' && window.__API_BASE_URL__) 
-  || 'http://localhost:5000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
 
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '';
