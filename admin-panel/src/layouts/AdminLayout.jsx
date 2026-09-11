@@ -155,12 +155,7 @@ const AdminLayout = () => {
                 OrderCake
               </span>
             </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-600"
-            >
-              <CloseIcon onClick={() => setSidebarOpen(false)} />
-            </button>
+            <CloseIcon onClick={() => setSidebarOpen(false)} />
           </div>
 
           {/* Navigation */}
