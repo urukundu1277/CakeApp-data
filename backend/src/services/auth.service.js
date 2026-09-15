@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config/environment');
 const User = require('../models/User');
+const { generateCustomerId } = require('../utils/generateCustomerId');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, config.jwt.secret, {
@@ -21,12 +22,15 @@ const register = async (userData) => {
     throw error;
   }
 
+  const customerId = await generateCustomerId();
+
   const user = await User.create({
     name,
     email,
     mobile,
     password,
     role,
+    customerId,
   });
 
   const token = generateToken(user._id);
@@ -34,6 +38,7 @@ const register = async (userData) => {
   return {
     user: {
       id: user._id,
+      customerId: user.customerId,
       name: user.name,
       email: user.email,
       mobile: user.mobile,
@@ -86,12 +91,14 @@ const mobileLogin = async (mobile, name) => {
   let user = await User.findOne({ mobile });
 
   if (!user) {
+    const customerId = await generateCustomerId();
     user = await User.create({
       name: name || 'User',
       email: `${mobile}@temp.com`,
       mobile,
       password: Math.random().toString(36),
       role: 'CUSTOMER',
+      customerId,
     });
   } else if (name && user.name === 'User') {
     user.name = name;
@@ -106,6 +113,7 @@ const mobileLogin = async (mobile, name) => {
   return {
     user: {
       id: user._id,
+      customerId: user.customerId,
       name: user.name,
       email: user.email,
       mobile: user.mobile,
@@ -126,12 +134,14 @@ const firebaseLogin = async ({ name, mobile, firebaseToken }) => {
   let user = await User.findOne({ mobile });
 
   if (!user) {
+    const customerId = await generateCustomerId();
     user = await User.create({
       name: name || 'User',
       email: `${mobile}@temp.com`,
       mobile,
       password: Math.random().toString(36),
       role: 'CUSTOMER',
+      customerId,
     });
   } else if (name && (user.name === 'User' || !user.name)) {
     user.name = name;
@@ -145,6 +155,7 @@ const firebaseLogin = async ({ name, mobile, firebaseToken }) => {
   return {
     user: {
       id: user._id,
+      customerId: user.customerId,
       name: user.name,
       email: user.email,
       mobile: user.mobile,

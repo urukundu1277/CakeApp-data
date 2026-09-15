@@ -21,7 +21,7 @@ const getAllOrders = async (filters = {}) => {
   const skip = (page - 1) * limit;
 
   const orders = await Order.find(query)
-    .populate('user', '_id name email mobile')
+    .populate('user', '_id name email mobile customerId')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -40,7 +40,7 @@ const getAllOrders = async (filters = {}) => {
 
 const getOrderById = async (orderId) => {
   return await Order.findById(orderId)
-    .populate('user', '_id name email mobile')
+    .populate('user', '_id name email mobile customerId')
     .populate('items.product', 'name images');
 };
 

@@ -81,17 +81,11 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             AppHeader(
               appName: 'OrderCake',
-              onCartTap: () {
-                if (context.mounted) {
-                  Navigator.pushNamed(context, '/cart');
-                }
-              },
               onProfileTap: () {
                 if (context.mounted) {
                   Navigator.pushNamed(context, '/profile');
                 }
               },
-              cartItemCount: _cartItemCount,
             ),
             Expanded(
               child: ListView(
@@ -138,14 +132,29 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         bottomNavigationBar: BottomNavigation(
           selectedIndex: _selectedBottomNavIndex,
+          cartItemCount: _cartItemCount,
           onTap: (index) {
             setState(() {
               _selectedBottomNavIndex = index;
             });
-            if (index == 1) {
-              if (context.mounted) {
-                Navigator.pushNamed(context, '/orders');
-              }
+            switch (index) {
+              case 0:
+                break;
+              case 1:
+                if (context.mounted) {
+                  Navigator.pushNamed(context, '/cart');
+                }
+                break;
+              case 2:
+                if (context.mounted) {
+                  Navigator.pushNamed(context, '/categories');
+                }
+                break;
+              case 3:
+                if (context.mounted) {
+                  Navigator.pushNamed(context, '/orders');
+                }
+                break;
             }
           },
         ),
@@ -285,20 +294,47 @@ class _HomeScreenState extends State<HomeScreen> {
               return const SizedBox.shrink();
             }
 
+            final categorizedProducts = <CategoryModel, List<ProductModel>>{};
+            for (final category in activeCategories) {
+              final categoryProducts = products.where((p) {
+                final hasCategory = p.categories.any((c) => c.id == category.id);
+                return hasCategory;
+              }).toList();
+              if (categoryProducts.isNotEmpty) {
+                categorizedProducts[category] = categoryProducts;
+              }
+            }
+
+            if (categorizedProducts.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: products.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.72,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemBuilder: (context, index) {
+                    return CakeProductCard(
+                      product: products[index],
+                      onFavoriteTap: () {},
+                    );
+                  },
+                ),
+              );
+            }
+
             return ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: activeCategories.length,
+              itemCount: categorizedProducts.keys.length,
               itemBuilder: (context, index) {
-                final category = activeCategories[index];
-                final categoryProducts = products.where((p) {
-                  final hasCategory = p.categories.any((c) => c.id == category.id);
-                  return hasCategory;
-                }).toList();
-
-                if (categoryProducts.isEmpty) {
-                  return const SizedBox.shrink();
-                }
+                final category = categorizedProducts.keys.elementAt(index);
+                final categoryProducts = categorizedProducts[category]!;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

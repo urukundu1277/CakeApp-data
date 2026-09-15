@@ -59,6 +59,8 @@ class CakeSaleApp extends StatelessWidget {
         title: 'OrderCake',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.lightTheme,
+        themeMode: ThemeMode.light,
         initialRoute: AppRoutes.splash,
         routes: {
           AppRoutes.splash: (context) => const SplashScreen(),

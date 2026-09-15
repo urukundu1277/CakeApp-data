@@ -7,22 +7,34 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/auth/login'),
-      headers: ApiConstants.headers,
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/auth/login'),
+        headers: ApiConstants.headers,
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
 
-    final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200 && data['success']) {
-      return data['data'];
+      if (response.statusCode == 200 && data['success']) {
+        return data['data'];
+      }
+
+      throw Exception(data['message'] ?? 'Login failed');
+    } on http.ClientException catch (e) {
+      if (e.message.contains('SocketException') || e.message.contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection and ensure the backend is running at ${ApiConstants.baseUrl}');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('SocketException') || e.toString().contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection and ensure the backend is running at ${ApiConstants.baseUrl}');
+      }
+      rethrow;
     }
-
-    throw Exception(data['message'] ?? 'Login failed');
   }
 
   Future<Map<String, dynamic>> register({
@@ -31,34 +43,58 @@ class AuthService {
     required String mobile,
     required String password,
   }) async {
-    final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/auth/register'),
-      headers: ApiConstants.headers,
-      body: jsonEncode({
-        'name': name,
-        'email': email,
-        'mobile': mobile,
-        'password': password,
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/auth/register'),
+        headers: ApiConstants.headers,
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'mobile': mobile,
+          'password': password,
+        }),
+      );
 
-    final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-    if (response.statusCode == 201 && data['success']) {
-      return data['data'];
+      if (response.statusCode == 201 && data['success']) {
+        return data['data'];
+      }
+
+      throw Exception(data['message'] ?? 'Registration failed');
+    } on http.ClientException catch (e) {
+      if (e.message.contains('SocketException') || e.message.contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection and ensure the backend is running at ${ApiConstants.baseUrl}');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('SocketException') || e.toString().contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection and ensure the backend is running at ${ApiConstants.baseUrl}');
+      }
+      rethrow;
     }
-
-    throw Exception(data['message'] ?? 'Registration failed');
   }
 
   Future<void> logout() async {
-    final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/auth/logout'),
-      headers: ApiConstants.headers,
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/auth/logout'),
+        headers: ApiConstants.headers,
+      );
 
-    if (response.statusCode != 200) {
-      throw Exception('Logout failed');
+      if (response.statusCode != 200) {
+        throw Exception('Logout failed');
+      }
+    } on http.ClientException catch (e) {
+      if (e.message.contains('SocketException') || e.message.contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection.');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('SocketException') || e.toString().contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection.');
+      }
+      rethrow;
     }
   }
 
@@ -66,23 +102,35 @@ class AuthService {
     required String name,
     required String mobile,
   }) async {
-    final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/auth/mobile/login'),
-      headers: ApiConstants.headers,
-      body: jsonEncode({
-        'name': name,
-        'mobile': mobile,
-        'otp': '123456',
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/auth/mobile/login'),
+        headers: ApiConstants.headers,
+        body: jsonEncode({
+          'name': name,
+          'mobile': mobile,
+          'otp': '123456',
+        }),
+      );
 
-    final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200 && data['success']) {
-      return data['data'];
+      if (response.statusCode == 200 && data['success']) {
+        return data['data'];
+      }
+
+      throw Exception(data['message'] ?? 'Mobile login failed');
+    } on http.ClientException catch (e) {
+      if (e.message.contains('SocketException') || e.message.contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection and ensure the backend is running at ${ApiConstants.baseUrl}');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('SocketException') || e.toString().contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection and ensure the backend is running at ${ApiConstants.baseUrl}');
+      }
+      rethrow;
     }
-
-    throw Exception(data['message'] ?? 'Mobile login failed');
   }
 
   Future<Map<String, dynamic>> firebaseLogin({
@@ -90,40 +138,64 @@ class AuthService {
     required String mobile,
     required String firebaseToken,
   }) async {
-    final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}/auth/firebase/login'),
-      headers: ApiConstants.headers,
-      body: jsonEncode({
-        'name': name,
-        'mobile': mobile,
-        'firebaseToken': firebaseToken,
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/auth/firebase/login'),
+        headers: ApiConstants.headers,
+        body: jsonEncode({
+          'name': name,
+          'mobile': mobile,
+          'firebaseToken': firebaseToken,
+        }),
+      );
 
-    final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200 && data['success']) {
-      return data['data'];
+      if (response.statusCode == 200 && data['success']) {
+        return data['data'];
+      }
+
+      throw Exception(data['message'] ?? 'Login failed');
+    } on http.ClientException catch (e) {
+      if (e.message.contains('SocketException') || e.message.contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection and ensure the backend is running at ${ApiConstants.baseUrl}');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('SocketException') || e.toString().contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection and ensure the backend is running at ${ApiConstants.baseUrl}');
+      }
+      rethrow;
     }
-
-    throw Exception(data['message'] ?? 'Login failed');
   }
 
   Future<Map<String, dynamic>> getMe(String token) async {
-    final response = await http.get(
-      Uri.parse('${ApiConstants.baseUrl}/auth/me'),
-      headers: {
-        ...ApiConstants.headers,
-        'Authorization': 'Bearer $token',
-      },
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/auth/me'),
+        headers: {
+          ...ApiConstants.headers,
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200 && data['success']) {
-      return data['data'];
+      if (response.statusCode == 200 && data['success']) {
+        return data['data'];
+      }
+
+      throw Exception(data['message'] ?? 'Failed to get user profile');
+    } on http.ClientException catch (e) {
+      if (e.message.contains('SocketException') || e.message.contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection.');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('SocketException') || e.toString().contains('No route to host')) {
+        throw Exception('Cannot connect to server. Please check your internet connection.');
+      }
+      rethrow;
     }
-
-    throw Exception(data['message'] ?? 'Failed to get user profile');
   }
 }

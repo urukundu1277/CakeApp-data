@@ -79,6 +79,9 @@ const Customers = () => {
                     Customer
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Customer ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -105,6 +108,9 @@ const Customers = () => {
                         </div>
                         <span className="text-sm font-medium text-gray-900">{customer.name}</span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {customer.customerId || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {customer.email}

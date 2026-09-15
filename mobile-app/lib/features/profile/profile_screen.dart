@@ -354,6 +354,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           _buildDetailRow('Name', user.name),
+          if (user.customerId.isNotEmpty) _buildDetailRow('Customer ID', user.customerId),
           _buildDetailRow('Mobile', user.mobile),
         ],
       ),

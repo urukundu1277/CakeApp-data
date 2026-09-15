@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,10 +11,12 @@ class AuthProvider extends ChangeNotifier {
   String? _token;
   UserModel? _user;
   bool _isLoading = true;
+  final Completer<void> _loadingCompleter = Completer<void>();
 
   String? get token => _token;
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
+  Future<void> get loadingDone => _loadingCompleter.future;
 
   AuthProvider() {
     _loadToken();
@@ -39,6 +42,9 @@ class AuthProvider extends ChangeNotifier {
     }
     _isLoading = false;
     notifyListeners();
+    if (!_loadingCompleter.isCompleted) {
+      _loadingCompleter.complete();
+    }
   }
 
   Future<void> setUser(dynamic user) async {

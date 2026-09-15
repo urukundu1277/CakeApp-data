@@ -315,14 +315,17 @@ const Orders = () => {
             <div className="p-6 space-y-6">
               {/* Customer Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="card p-4">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Customer</p>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-900">{selectedOrder.user?.name || 'N/A'}</p>
-                    <p className="text-sm text-gray-600">{selectedOrder.user?.mobile || ''}</p>
-                    <p className="text-sm text-gray-600">{selectedOrder.user?.email || ''}</p>
+                  <div className="card p-4">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Customer</p>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-gray-900">{selectedOrder.user?.name || 'N/A'}</p>
+                      {selectedOrder.user?.customerId && (
+                        <p className="text-xs text-gray-500">Customer ID: {selectedOrder.user.customerId}</p>
+                      )}
+                      <p className="text-sm text-gray-600">{selectedOrder.user?.mobile || ''}</p>
+                      <p className="text-sm text-gray-600">{selectedOrder.user?.email || ''}</p>
+                    </div>
                   </div>
-                </div>
                 <div className="card p-4">
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Delivery</p>
                   <div className="space-y-1">

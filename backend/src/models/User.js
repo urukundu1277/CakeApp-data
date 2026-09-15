@@ -45,6 +45,11 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  customerId: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
 }, {
   timestamps: true,
 });

@@ -20,25 +20,19 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   _navigateToNextScreen() async {
-    await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      // Wait for auth provider to finish loading token
-      while (authProvider.isLoading) {
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
+      await authProvider.loadingDone;
 
       final token = authProvider.token;
 
       if (token != null && token.isNotEmpty) {
-        // If token exists but user data is missing, fetch from backend
         if (authProvider.user == null) {
           try {
             final userData = await AuthService().getMe(token);
             await authProvider.setUser(userData);
           } catch (e) {
-            // If fetch fails, clear token and go to login
             await authProvider.logout();
             if (mounted) {
               Navigator.pushReplacementNamed(context, '/login');

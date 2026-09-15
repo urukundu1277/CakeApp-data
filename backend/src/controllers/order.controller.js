@@ -6,6 +6,7 @@ const { protect } = require('../middleware/auth.middleware');
 const { validationResult } = require('express-validator');
 const { sendPushNotification } = require('../services/notification.service');
 const User = require('../models/User');
+const { generateOrderNumber } = require('../utils/generateOrderNumber');
 
 const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
@@ -53,8 +54,10 @@ const createOrder = async (req, res) => {
       });
     }
 
+    const orderNumber = await generateOrderNumber();
+
     const orderData = {
-      orderNumber: require('../utils/generateOrderNumber').generateOrderNumber(),
+      orderNumber,
       user: req.user._id,
       items: cart.items.map((item) => {
         const product = item.product;

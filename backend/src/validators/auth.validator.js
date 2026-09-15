@@ -49,8 +49,6 @@ const validateMobileLogin = [
     .isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
   body('mobile')
     .matches(/^[0-9]{10}$/).withMessage('Please enter a valid 10-digit mobile number'),
-  body('otp')
-    .isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
   validateRequest,
 ];
 
