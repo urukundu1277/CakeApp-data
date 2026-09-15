@@ -52,6 +52,9 @@ class OrderModel {
   final String? cancelledBy;
   final DateTime? cancelledAt;
   final DateTime createdAt;
+  final DateTime? deliveryDate;
+  final String? deliveryTimeSlot;
+  final String? cakeMessage;
 
   OrderModel({
     required this.id,
@@ -67,6 +70,9 @@ class OrderModel {
     this.cancelledBy,
     this.cancelledAt,
     required this.createdAt,
+    this.deliveryDate,
+    this.deliveryTimeSlot,
+    this.cakeMessage,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -99,6 +105,9 @@ class OrderModel {
       cancelledBy: json['cancelledBy'] == null ? null : parseString(json['cancelledBy']),
       cancelledAt: json['cancelledAt'] == null ? null : DateTime.tryParse(parseString(json['cancelledAt'])),
       createdAt: DateTime.tryParse(parseString(json['createdAt'])) ?? DateTime.now(),
+      deliveryDate: json['deliveryDate'] == null ? null : DateTime.tryParse(parseString(json['deliveryDate'])),
+      deliveryTimeSlot: json['deliveryTimeSlot'] == null ? null : parseString(json['deliveryTimeSlot']),
+      cakeMessage: json['cakeMessage'] == null ? null : parseString(json['cakeMessage']),
     );
   }
 }

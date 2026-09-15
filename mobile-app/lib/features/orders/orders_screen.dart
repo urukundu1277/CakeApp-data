@@ -371,26 +371,29 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         final token = authProvider.token;
         if (token != null && token.isNotEmpty) {
           await _orderService.cancelOrder(token, order.id, reason: reason.isEmpty ? null : reason);
-          if (mounted) {
-            AppNotification.showSuccess(context, 'Order cancelled successfully');
-            setState(() {
-              order = OrderModel(
-                id: order.id,
-                orderNumber: order.orderNumber,
-                items: order.items,
-                subtotal: order.subtotal,
-                deliveryFee: order.deliveryFee,
-                discount: order.discount,
-                totalAmount: order.totalAmount,
-                paymentStatus: order.paymentStatus,
-                orderStatus: 'CANCELLED',
-                cancellationReason: reason.isEmpty ? 'Cancelled by customer' : reason,
-                cancelledBy: 'CUSTOMER',
-                cancelledAt: DateTime.now(),
-                createdAt: order.createdAt,
-              );
-            });
-          }
+            if (mounted) {
+              AppNotification.showSuccess(context, 'Order cancelled successfully');
+              setState(() {
+                order = OrderModel(
+                  id: order.id,
+                  orderNumber: order.orderNumber,
+                  items: order.items,
+                  subtotal: order.subtotal,
+                  deliveryFee: order.deliveryFee,
+                  discount: order.discount,
+                  totalAmount: order.totalAmount,
+                  paymentStatus: order.paymentStatus,
+                  orderStatus: 'CANCELLED',
+                  cancellationReason: reason.isEmpty ? 'Cancelled by customer' : reason,
+                  cancelledBy: 'CUSTOMER',
+                  cancelledAt: DateTime.now(),
+                  createdAt: order.createdAt,
+                  deliveryDate: order.deliveryDate,
+                  deliveryTimeSlot: order.deliveryTimeSlot,
+                  cakeMessage: order.cakeMessage,
+                );
+              });
+            }
         }
       } catch (e) {
         if (mounted) {
@@ -584,8 +587,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           const SizedBox(height: 12),
           _buildInfoRow(Icons.receipt_long, 'Order Number', order.orderNumber),
           _buildInfoRow(Icons.calendar_today, 'Order Date', DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt)),
-          if (order.orderStatus == 'DELIVERED')
-            _buildInfoRow(Icons.check_circle, 'Delivered On', DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt)),
+          if (order.deliveryDate != null)
+            _buildInfoRow(Icons.event, 'Delivery Date', DateFormat('dd MMM yyyy').format(order.deliveryDate!)),
+          if (order.deliveryTimeSlot != null && order.deliveryTimeSlot!.isNotEmpty)
+            _buildInfoRow(Icons.access_time, 'Delivery Time', order.deliveryTimeSlot!),
         ],
       ),
     );
